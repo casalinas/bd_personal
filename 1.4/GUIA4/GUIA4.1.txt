@@ -1,0 +1,64 @@
+
+VAR b_anno NUMBER;
+EXEC :b_anno:=&Ingrese_año;
+DECLARE
+v_max NUMBER;
+v_min NUMBER;
+v_id NUMBER;
+v_numrun NUMBER;
+v_dv VARCHAR2(3);
+v_nombre VARCHAR2(70);
+v_comuna VARCHAR2(30);
+v_sueldo NUMBER;
+v_porcentaje NUMBER(3);
+v_normal NUMBER;
+v_extra NUMBER;
+v_total NUMBER;
+BEGIN
+--SE TRUNCA LA TABLA EN EJECUCION. 
+EXECUTE IMMEDIATE ('TRUNCATE TABLE proy_movilizacion');
+--Sacamos una lista que le entregaremos al loop para recorrer a cada empleado
+ SELECT MIN(id_emp),
+        MAX(id_emp) 
+    INTO v_min, v_max 
+ FROM empleado;
+ 
+LOOP
+ SELECT e.id_emp,
+        e.numrun_emp,
+        e.dvrun_emp,
+        e.pnombre_emp||' '||e.snombre_emp||' '||e.appaterno_emp||' '||e.apmaterno_emp,
+        c.nombre_comuna,
+        e.sueldo_base
+    INTO v_id, v_numrun, v_dv, v_nombre, v_comuna, v_sueldo
+ FROM empleado e
+
+  INNER JOIN comuna c
+    ON e.id_comuna = c.id_comuna
+--extrayendo el empleado al id que esta recorriendo el loop
+  WHERE e.id_emp=v_min;
+  v_porcentaje:=TRUNC(v_sueldo/100000);
+--calculo movilizacion normal
+  v_normal:=(v_sueldo*v_porcentaje)/100;
+--calculando la movilizacion extra
+  v_extra :=
+  CASE
+  WHEN v_comuna='María Pinto' THEN 20000
+  WHEN v_comuna='Curacaví' THEN 25000
+  WHEN v_comuna='Talagante' THEN 30000
+  WHEN v_comuna='El Monte' THEN 35000
+  WHEN v_comuna='Buin' THEN 40000
+  ELSE 0
+  END;
+  COMMIT;
+--sumamos para obtener el valor total de movilizacion
+v_total:=v_normal+v_extra;
+--INSERTAMOS LOS VALORES EN LATABLA 
+INSERT INTO proy_movilizacion VALUES
+(:b_anno, v_id, v_numrun, v_dv, v_nombre, v_comuna, v_sueldo, v_porcentaje, v_normal, v_extra, v_total);
+--aumentamos el minimo en 10 para que recorra a un empleado diferente en cada ciclo.
+v_min:=v_min+10;
+--la condicion para que cuando esten todos los ID recorridos, termine el ciclo. 
+EXIT WHEN v_min>v_max;
+END LOOP;
+END;

@@ -1,0 +1,167 @@
+--------------------------------
+-- CASOS GUIA 1.1.3 (RENT A HOUSE)
+/* se inicializan variables bind,
+una con el % de bonificación y otra
+para asignar los ruts que obtendrán el bono*/
+var b_bonificacion_emp number
+exec :b_bonificacion_emp := 0.4;
+var b_run_emp number
+exec :b_run_emp :=&run;
+-- RUN 1: 11846972
+-- RUN 2: 18560875
+declare 
+/* declaramos variables escalares para asignarle 
+los valores de la consulta*/
+v_nombre_emp varchar2(100);
+v_run_emp number;
+v_dv_rut varchar2(1);
+v_sueldo_emp number;
+v_categoria_emp categoria_empleado.desc_categoria_emp%type;
+begin
+-- se ejecuta la consulta condicionandola al rut del empleado asignado
+select e.nombre_emp||' '||e.appaterno_emp||' '||
+e.apmaterno_emp, e.numrut_emp,e.dvrut_emp,
+e.sueldo_emp, cat.desc_categoria_emp 
+into v_nombre_emp, v_run_emp, v_dv_rut, v_sueldo_emp, v_categoria_emp 
+from empleado e join categoria_empleado cat on 
+(cat.id_categoria_emp = e.id_categoria_emp)
+where e.numrut_emp = :b_run_emp;
+
+-- se usa dbms para visualizar el calculo de la bonificación
+DBMS_OUTPUT.PUT_LINE('DATOS CALCULO BONIFICACIÓN EXTRA DEL 40% DEL SUELDO');
+DBMS_OUTPUT.PUT_LINE('Nombre Empleado: '|| v_nombre_emp);
+DBMS_OUTPUT.PUT_LINE('RUN: '||v_run_emp||'-'||v_dv_rut );
+DBMS_OUTPUT.PUT_LINE('Sueldo actual:'||TO_CHAR(v_sueldo_emp,'$999G999'));
+/*
+ el bono solo se aplica si el sueldo es menor a 500.000
+ y el empleado no pertenece a "ejecutivo de arriendo"
+*/
+if v_sueldo_emp < 500000 and v_categoria_emp != 'Ejecutivo de Arriendo' then 
+dbms_output.put_line('bonificacion extra '||TO_CHAR(v_sueldo_emp*:b_bonificacion_emp,'$999G999'));
+end if;
+end;
+/
+
+-----------------------------------------------
+-- EJERCICIO 2
+/*
+declaramos una variable bind para
+escribir rut de forma paramétrica
+*/
+var b_rut_cli number;
+exec :b_rut_cli :=&rut;
+-- RUT 1: 12487147
+-- RUT 2: 12861354 
+--RUT 3: 13050258
+declare
+-- declaramos variables escalares
+v_nombre_cli varchar2(50);
+v_rut_cli number;
+v_dv_cli varchar2(1);
+v_estcivil_cli varchar2(25);
+v_renta_cli number;
+begin
+-- se hace la consulta para asignar datos a variables escalares
+select c.nombre_cli||' '||c.appaterno_cli||' '||c.apmaterno_cli,
+c.numrut_cli,
+c.dvrut_cli, 
+est.desc_estcivil,
+c.renta_cli
+into v_nombre_cli,v_rut_cli,v_dv_cli,v_estcivil_cli,v_renta_cli
+from cliente c join estado_civil est
+on (c.id_estcivil = est.id_estcivil)
+-- condicion de salida para sacar una sola fila
+where c.numrut_cli = :b_rut_cli;
+-- visualización de datos asignados a variables
+DBMS_OUTPUT.PUT_LINE('Datos Del Cliente ');
+DBMS_OUTPUT.PUT_LINE('Nombre: '||INITCAP(v_nombre_cli));
+DBMS_OUTPUT.PUT_LINE('----------------------------------');
+DBMS_OUTPUT.PUT_LINE('RUN '|| v_rut_cli||'-'||v_dv_cli);
+DBMS_OUTPUT.PUT_LINE('Estado civil: '|| v_estcivil_cli);
+DBMS_OUTPUT.PUT_LINE('Renta: '|| TO_CHAR(v_renta_cli,'$9G999G999'));
+end;
+/
+-- CASO 3
+-- SE DECLARAN VARIABLES BIND DE % AUMENTO Y RUT
+var b_aum_simula_1 number;
+exec :b_aum_simula_1 := 8.5;
+
+var b_aum_simula_2 number;
+exec :b_aum_simula_2 := 20;
+
+var b_run_emp number;
+exec :b_run_emp :=12260812
+-- rut 1: 12260812
+-- rut 2: 11999100
+DECLARE
+-- VARIABLES ESCALARES
+v_nombre_emp varchar2(100);
+v_sueldo empleado.sueldo_emp%type;
+v_dv_run varchar2(1);
+v_rut_emp number;
+BEGIN
+-- CONSULTA CON ASIGNACION DE DATOS A VARIABLES CON CONDICION DE QUE RUT SEA IGUAL A BIND ANTES DECLARADO
+select e.nombre_emp||' '||e.appaterno_emp||' '||e.apmaterno_emp,
+e.numrut_emp,e.dvrut_emp,e.sueldo_emp 
+INTO v_nombre_emp, v_rut_emp, v_dv_run,v_sueldo
+from empleado e
+where e.numrut_emp = :b_run_emp;
+-- AUMENTO DE SUELDO DE 8.5% A TODOS LOS EMPLEADOS
+DBMS_OUTPUT.put_line('NOMBRE DEL EMPLEADO: '||v_nombre_emp );
+DBMS_OUTPUT.put_line('RUN: '||v_rut_emp||'-'||v_dv_run );
+DBMS_OUTPUT.put_line('SIMULACION 1: Aumentar en 8.5% el salario de todos los empleados');
+DBMS_OUTPUT.put_line('Sueldo actual: '||TO_CHAR(v_sueldo,'$9G999G999'));
+DBMS_OUTPUT.put_line('Sueldo reajustado: '||TO_CHAR(ROUND(v_sueldo*:b_aum_simula_1/100+v_sueldo),'$999G999'));
+DBMS_OUTPUT.put_line('Reajuste: '||TO_CHAR(ROUND(v_sueldo *:b_aum_simula_1/100),'$999G999'));
+
+-- AUMENTO DEL 20% PARA EMPLEADOS CON SUELDO ENTRE 200.000 Y 400.000
+if v_sueldo between 200000 and 400000 then
+DBMS_OUTPUT.put_line('Simulacion 2: Aumentar en 20% el salario de los empleados que poseen salarios entre 200.000 y 400.000 '); 
+DBMS_OUTPUT.put_line('Sueldo actual: '||TO_CHAR( v_sueldo,'9G999G999'));
+DBMS_OUTPUT.put_line('Sueldo reajustado: '||TO_CHAR(ROUND(v_sueldo + (v_sueldo * :b_aum_simula_2/100)),'$999G999'));
+DBMS_OUTPUT.put_line('Reajuste: '||TO_CHAR(ROUND(v_sueldo *:b_aum_simula_2/100),'$999G999'));
+end if;
+END;
+/
+-- CASO 4 CON CURSOR EXPLICITO
+
+declare 
+v_arriendo propiedad.valor_arriendo%type;
+v_tipo_prop tipo_propiedad.desc_tipo_propiedad%type;
+v_cant_prop number;
+-- DECLARAMOS CURSOR
+cursor cur is select count(*),SUM(p.valor_arriendo) ,t.desc_tipo_propiedad from propiedad p join tipo_propiedad t
+on (p.id_tipo_propiedad=t.id_tipo_propiedad)
+group by p.id_tipo_propiedad, t.desc_tipo_propiedad;
+begin 
+-- SE ABRE CURSOR
+ open cur;
+ loop
+ -- SE HACE LOOP PARA PODER RECORRER CURSOR
+ -- SE RECORRE EL CURSOR
+  fetch cur into v_cant_prop,v_arriendo,v_tipo_prop;
+  -- SE DEFINE SALIDA DEL CURSOR CUANDO DEJE DE ENCONTRAR FILAS
+  exit when cur%notfound;
+  DBMS_OUTPUT.PUT_LINE('RESUMEN DE: '||v_tipo_prop);
+   DBMS_OUTPUT.PUT_LINE('Total de Propiedades: '||v_cant_prop);
+    DBMS_OUTPUT.PUT_LINE('Valor Total Arriendo: '||TO_CHAR(v_arriendo,'$9G999G999'));
+  end loop;
+  -- SE CIERRA LOOP Y CURSOR
+  close cur;
+end;
+/
+-- CASO 4 CON FOR (CURSOR IMPLICITO)
+-- LAS "VARIABLES" QUEDAN ASIGNADAS DENTRO DEL FOR
+begin
+for x in ( select count(*) as total,SUM(p.valor_arriendo) as arriendo,t.desc_tipo_propiedad as descripcion
+from propiedad p join tipo_propiedad t
+on (p.id_tipo_propiedad=t.id_tipo_propiedad)
+group by p.id_tipo_propiedad, t.desc_tipo_propiedad)
+loop
+-- LOOP PARA RECORRER DATOS
+ dbms_output.put_line('resumen de: '||x.descripcion);
+ DBMS_OUTPUT.PUT_LINE('Total de Propiedades: '||x.total);
+ DBMS_OUTPUT.PUT_LINE('Valor Total Arriendo: '||TO_CHAR(x.arriendo,'$9G999G999'));
+-- CIERRE DE LOOP
+end loop;
+end;

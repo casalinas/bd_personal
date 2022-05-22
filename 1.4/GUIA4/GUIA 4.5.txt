@@ -1,0 +1,253 @@
+/* p4-c1 */
+
+declare
+b_anno_proceso        number(4);
+b_mov_mariapinto      number(7);
+b_mov_curacavi        number(7);
+b_mov_talagante       number(7);
+b_mov_elmonte         number(7);
+b_mov_buin            number(7);
+
+v_mov_mariapinto      number(7);
+v_mov_curacavi        number(7);
+v_mov_talagante       number(7);
+v_mov_elmonte         number(7);
+v_mov_buin            number(7);
+
+v_min_id_emp          number(6);
+v_max_id_emp          number(6);
+v_anno_proceso        number(4);
+v_id_emp              number(6);
+v_numrun_emp          number(10);
+v_dvrun_emp           varchar2(1);
+v_appaterno_emp       varchar2(30);
+v_apmaterno_emp       varchar(30);
+v_pnombre_emp         varchar(25);
+v_snombre_emp         varchar2(25);
+v_nombre_empleado     varchar2(115);
+v_id_comuna           number(3);
+v_nombre_comuna       varchar2(30);
+v_sueldo_base         number(7);
+v_porc_movil_normal   number(6,2);
+v_valor_movil_normal  number(7);
+v_valor_movil_extra   number(7);
+v_valor_total_movil   number(7);
+
+begin
+  delete proy_movilizacion;
+  
+  select min(id_emp), max(id_emp) into v_min_id_emp, v_max_id_emp FROM empleado;
+  
+  v_anno_proceso := &b_anno_proceso;
+  v_mov_mariapinto := &b_mov_mariapinto;
+  v_mov_curacavi := &b_mov_curacavi;
+  v_mov_talagante := &b_mov_talagante;
+  v_mov_elmonte := &b_mov_elmonte;
+  v_mov_buin := &b_mov_buin;
+
+   while v_max_id_emp >= v_min_id_emp loop
+    select e.id_emp, e.numrun_emp, e.dvrun_emp, 
+    e.pnombre_emp || ' ' || e.snombre_emp || ' ' || e.appaterno_emp || ' ' || e.apmaterno_emp as v_nombre_empleado,
+    e.id_comuna, c.nombre_comuna, e.sueldo_base
+    INTO v_id_emp, v_numrun_emp, v_dvrun_emp, v_nombre_empleado, v_id_comuna, v_nombre_comuna, v_sueldo_base
+    FROM empleado e
+    join comuna c on c.id_comuna = e.id_comuna
+    where e.id_emp = v_min_id_emp;
+    v_porc_movil_normal := trunc(v_sueldo_base/100000);
+    v_valor_movil_normal := round(v_sueldo_base * v_porc_movil_normal/100);
+    
+    v_valor_movil_extra := case
+    when v_id_comuna = 117 then v_mov_mariapinto
+    when v_id_comuna = 118 then v_mov_curacavi
+    when v_id_comuna = 119 then v_mov_talagante
+    when v_id_comuna = 120 then v_mov_elmonte
+    when v_id_comuna = 121 then v_mov_buin
+    else 0
+    end;
+    v_valor_total_movil := v_valor_movil_normal + v_valor_movil_extra;
+    insert into proy_movilizacion 
+    values (v_anno_proceso,v_id_emp,v_numrun_emp,v_dvrun_emp,v_nombre_empleado,v_nombre_comuna,v_sueldo_base,v_porc_movil_normal,v_valor_movil_normal,v_valor_movil_extra,v_valor_total_movil);
+    v_min_id_emp := v_min_id_emp + 10;
+  end loop;
+  commit;
+end;
+/
+
+-- CASO 2
+DECLARE
+V_MAX_ID NUMBER;
+V_MIN_ID NUMBER;
+
+V_ID NUMBER (6,0);
+V_RUN NUMBER (10,0);
+V_NOMBRE VARCHAR2(60);
+
+V_EST_CIVIL VARCHAR2(1);
+V_TRES_L_NOMBRE VARCHAR2(3);
+V_LARGO_NOMBRE VARCHAR2(2);
+V_ASTERISCO VARCHAR2(1);
+V_ULT_DIG_SUELDO VARCHAR2(1);
+V_DV_RUN VARCHAR2(1);
+V_ANNOS_TRABAJADOS VARCHAR2(2);
+V_X VARCHAR2 (1);
+V_NOMBRE_USUARIO VARCHAR2(30);
+BEGIN
+
+SELECT MAX(id_emp), MIN(id_emp)
+into v_max_id, v_min_id
+from empleado;
+
+while v_max_id >= v_min_id loop         
+
+select emp.id_emp, 
+emp.numrun_emp, 
+emp.pnombre_emp||' '||emp.snombre_emp||' '||emp.appaterno_emp||' '||emp.apmaterno_emp nombre,
+LOWER(SUBSTR(est.nombre_estado_civil,1,1)),
+SUBSTR(emp.pnombre_emp,1,3),
+LENGTH(emp.pnombre_emp),
+'*',
+SUBSTR(emp.sueldo_base,-1,1),
+emp.dvrun_emp,
+TRUNC(MONTHS_BETWEEN (SYSDATE,emp.fecha_contrato)/12),
+'X'
+INTO V_ID,V_RUN,V_NOMBRE,v_est_civil,v_tres_l_nombre, v_largo_nombre, v_asterisco,
+v_ult_dig_sueldo, v_dv_run, v_annos_trabajados, V_X
+from empleado emp
+join estado_civil est on (est.id_estado_civil = emp.id_estado_civil)
+where emp.id_emp = V_ID;
+
+END LOOP;
+END;
+/
+
+--ejercicio 5
+-- SE ASIGNA CURSOR PARA RECORRER DATOS
+ VAR b_anno_ejecucion number;
+ EXEC :b_anno_ejecucion := EXTRACT(YEAR FROM SYSDATE)-1;
+ -- TRUNCAMOS INFO SII PARA EJECUTARLO INFINITAS VECES
+TRUNCATE TABLE INFO_SII;
+DECLARE
+v_anno NUMBER;
+v_id NUMBER;
+v_run VARCHAR2(25);
+v_nombre VARCHAR2(55);
+v_cargo VARCHAR2(45);
+v_meses NUMBER;
+v_anios NUMBER;
+v_sueldo_mensual NUMBER;
+v_sueldo_anual NUMBER;
+v_bono_annos_anual number;
+
+v_cant_cam_arr_mespasado number;
+v_id_arrendador_mespasado number;
+v_mes_arrendado number;
+
+v_bono_arr_camion number;
+v_bono_especial_anual number;
+v_movilizacion_anual number;
+v_colacion_anual number;
+v_desctos_legales number;
+v_sueldo_bruto_anual number;
+v_renta_imponible_anual number;
+v_meses_trabajados number;
+
+v_camion_a_cargo NUMBER;
+v_mes NUMBER;
+
+
+CURSOR bonocamion is 
+ select count(c.id_camion), c.id_emp, EXTRACT(MONTH FROM arr.fecha_ini_arriendo) mes
+--into v_cant_cam_arr_mespasado, v_id_arrendador_mespasado, v_mes_arrendado 
+
+ from camion c
+ join arriendo_camion arr on (arr.id_camion = c.id_camion)
+ where EXTRACT(YEAR FROM arr.fecha_ini_arriendo) = TO_CHAR(SYSDATE,'YYYY') -1 and
+ EXTRACT(MONTH FROM arr.fecha_ini_arriendo) = TO_CHAR(SYSDATE,'MM')-1
+ group by c.id_emp,EXTRACT(MONTH FROM arr.fecha_ini_arriendo); 
+
+CURSOR cur is 
+ SELECT :b_anno_ejecucion,
+        e.id_emp,
+        e.numrun_emp||'-'||e.dvrun_emp,
+        e.pnombre_emp||' '||e.snombre_emp||' '||e.appaterno_emp||' '||e.apmaterno_emp ,
+        COUNT(c.id_emp),
+        (ROUND(MONTHS_BETWEEN(SYSDATE,e.fecha_contrato)/12))-1 AS"AÑOS",
+        MONTHS_BETWEEN(SYSDATE,e.fecha_contrato) as meses_trabajados,
+        e.sueldo_base,
+        EXTRACT(MONTH FROM e.fecha_contrato)
+
+ FROM empleado e
+ LEFT JOIN camion c
+    ON e.id_emp = c.id_emp
+group by 
+       :b_anno_ejecucion ,
+        e.id_emp,
+        e.numrun_emp||'-'||e.dvrun_emp,
+        e.pnombre_emp||' '||e.snombre_emp||' '||e.appaterno_emp||' '||e.apmaterno_emp,
+        (ROUND(MONTHS_BETWEEN(SYSDATE,e.fecha_contrato)/12))-1,
+        MONTHS_BETWEEN(SYSDATE,e.fecha_contrato),
+        e.sueldo_base,    
+        EXTRACT(MONTH FROM e.fecha_contrato);
+
+BEGIN 
+ -- SE ABRE CURSOR
+ OPEN cur;
+ LOOP
+ -- SE RECORRE CURSOR
+  FETCH cur INTO
+  v_anno, v_id, v_run, v_nombre,v_camion_a_cargo, v_anios,v_meses_trabajados, v_sueldo_mensual,v_mes;
+  EXIT WHEN cur%notfound;
+  
+    IF v_camion_a_cargo >= 1 THEN v_cargo := 'Encargado de Arriendos';
+    ELSIF v_camion_a_cargo < 1 THEN v_cargo := 'Labores Administrativas';
+    END IF;
+
+-- LOS MESES TRABAJADOS DEL AÑO ANTERIOR SON IGUAL A LOS MESES TRABAJADOS(-12) DIVIDIDO EN AÑOS
+    IF v_meses_trabajados <= 12 THEN v_meses := ROUND(v_meses_trabajados);
+    ELSIF v_meses_trabajados > 12 THEN v_meses := ROUND((v_meses_trabajados -12) / v_anios);
+    END IF;
+ 
+ 
+ -- ASIGNACION DE BONO ANUAL PARA TRABAJADORES CON MAS DE UN AÑO
+ IF :b_anno_ejecucion = 2021 AND v_anios BETWEEN 1 AND 9 THEN v_bono_annos_anual := ROUND(v_sueldo_mensual * 0.04);
+ 
+ ELSIF :b_anno_ejecucion = 2021 AND v_anios BETWEEN 10 AND 15  THEN v_bono_annos_anual := ROUND(v_sueldo_mensual * 0.06); 
+ 
+ ELSIF :b_anno_ejecucion = 2021 AND v_anios BETWEEN 16 AND 25  THEN v_bono_annos_anual := ROUND(v_sueldo_mensual * 0.07);
+ 
+ ELSIF :b_anno_ejecucion = 2021 AND v_anios BETWEEN 26 AND 40  THEN v_bono_annos_anual := ROUND(v_sueldo_mensual * 0.1);
+ 
+ ELSIF :b_anno_ejecucion = 2022 AND v_anios BETWEEN 1 AND 9  THEN v_bono_annos_anual := ROUND(v_sueldo_mensual * 0.05);
+ 
+ ELSIF :b_anno_ejecucion = 2022 AND v_anios BETWEEN 10 AND 15  THEN v_bono_annos_anual := ROUND(v_sueldo_mensual * 0.07);
+ 
+ ELSIF :b_anno_ejecucion = 2022 AND v_anios BETWEEN 16 AND 25  THEN v_bono_annos_anual := ROUND(v_sueldo_mensual * 0.08);
+ 
+ ELSIF :b_anno_ejecucion = 2022 AND v_anios BETWEEN 26 AND 40  THEN v_bono_annos_anual := ROUND(v_sueldo_mensual * 0.11);
+ ELSE v_bono_annos_anual := 0;
+ END IF;
+
+
+
+-- CALCULO DE BONO POR CAMIONES ARRENDADOS EN EL MES
+OPEN bonocamion;
+ LOOP
+ fetch bonocamion into v_cant_cam_arr_mespasado, v_id_arrendador_mespasado, v_mes_arrendado;
+ exit when bonocamion%notfound;
+ 
+  IF v_cant_cam_arr_mespasado > 0 THEN v_bono_arr_camion := ROUND(v_cant_cam_arr_mespasado * (v_sueldo_mensual * 0.05));  
+ ELSE v_bono_arr_camion := 0;
+ END IF;
+ END LOOP;
+ CLOSE bonocamion;   
+   
+ v_sueldo_anual:=v_sueldo_mensual*v_meses;
+ 
+   DBMS_OUTPUT.PUT_LINE(v_run||v_cargo||'  '||v_meses
+   ||' '||v_anios||' '||v_sueldo_mensual||' '||v_sueldo_anual||' '||v_bono_annos_anual);
+  
+  insert into INFO_SII VALUES (:b_anno_ejecucion,v_id,v_run,v_nombre,v_cargo,v_meses,v_anios,v_sueldo_mensual,v_sueldo_anual,v_bono_annos_anual,1,1,1,1,1,1);  
+  END LOOP;
+  CLOSE cur;
+END;
+/

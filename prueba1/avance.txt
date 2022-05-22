@@ -1,0 +1,87 @@
+DECLARE 
+v_id_vendor number;
+v_contador_min_id number;
+v_contador_max_id number;
+
+v_rut_vend number;
+v_mes_proceso number;
+v_anno_proceso number;
+v_sueldo_base number;
+v_asig_antiguedad number;
+v_asig_cargas number;
+v_comisiones number;
+v_bono_categ number;
+v_bono_grupos number;
+v_descuentos number;
+v_total_haberes number;
+
+ BEGIN 
+ 
+  select min(ID_VENDEDOR), max(ID_VENDEDOR) into v_contador_min_id,
+  v_contador_max_id FROM vendedor;
+
+ 
+ while v_contador_max_id >= v_contador_min_id loop
+ 
+ select
+vendor.id_vendedor,
+vendor.rut_vendedor,
+EXTRACT(MONTH FROM venta.fecha_venta) MES,
+EXTRACT(YEAR FROM venta.fecha_venta) ANNO,
+vendor.sueldo
+
+INTO v_id_vendor,v_rut_vend ,v_mes_proceso ,v_anno_proceso , v_sueldo_base
+
+from vendedor vendor
+join venta on (venta.id_vendedor = vendor.id_vendedor)
+WHERE vendor.id_vendedor = v_contador_min_id;
+--AND EXTRACT(MONTH FROM venta.fecha_venta) = 05
+--AND EXTRACT(YEAR FROM venta.fecha_venta) = 2021
+
+--DBMS_OUTPUT.PUT_LINE('ID VENDEDOR ='||v_id_vendor||' '||v_rut_vend||' '||v_mes_proceso||' '||v_anno_proceso||' '||v_sueldo_base);
+v_contador_min_id := v_contador_min_id + 10;
+
+END LOOP;
+commit;
+
+END;
+ /*
+ -- ASIGNACION DE BONO ANUAL PARA TRABAJADORES CON MAS DE UN AÑO
+ IF :b_anno_ejecucion = 2021 AND v_anios BETWEEN 1 AND 9 THEN v_bono_annos_anual := ROUND(v_sueldo_mensual * 0.04);
+ 
+ ELSIF :b_anno_ejecucion = 2021 AND v_anios BETWEEN 10 AND 15  THEN v_bono_annos_anual := ROUND(v_sueldo_mensual * 0.06); 
+ 
+ ELSIF :b_anno_ejecucion = 2021 AND v_anios BETWEEN 16 AND 25  THEN v_bono_annos_anual := ROUND(v_sueldo_mensual * 0.07);
+ 
+ ELSIF :b_anno_ejecucion = 2021 AND v_anios BETWEEN 26 AND 40  THEN v_bono_annos_anual := ROUND(v_sueldo_mensual * 0.1);
+ 
+ ELSIF :b_anno_ejecucion = 2022 AND v_anios BETWEEN 1 AND 9  THEN v_bono_annos_anual := ROUND(v_sueldo_mensual * 0.05);
+ 
+ ELSIF :b_anno_ejecucion = 2022 AND v_anios BETWEEN 10 AND 15  THEN v_bono_annos_anual := ROUND(v_sueldo_mensual * 0.07);
+ 
+ ELSIF :b_anno_ejecucion = 2022 AND v_anios BETWEEN 16 AND 25  THEN v_bono_annos_anual := ROUND(v_sueldo_mensual * 0.08);
+ 
+ ELSIF :b_anno_ejecucion = 2022 AND v_anios BETWEEN 26 AND 40  THEN v_bono_annos_anual := ROUND(v_sueldo_mensual * 0.11);
+ ELSE v_bono_annos_anual := 0;
+ END IF;
+*/
+
+/
+
+
+/*
+select
+vendor.id_vendedor,
+vendor.rut_vendedor,
+EXTRACT(MONTH FROM venta.fecha_venta) MES,
+EXTRACT(YEAR FROM venta.fecha_venta) ANNO,
+vendor.sueldo
+
+from vendedor vendor
+join venta on (venta.id_vendedor = vendor.id_vendedor)
+WHERE EXTRACT(MONTH FROM venta.fecha_venta) = 05
+AND EXTRACT(YEAR FROM venta.fecha_venta) = 2021;
+*/
+
+
+

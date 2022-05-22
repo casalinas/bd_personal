@@ -1,0 +1,226 @@
+-- ejercicio 1
+TRUNCATE TABLE cliente_todosuma;
+
+VAR b_rut NUMBER;
+EXEC :b_rut :=&Ingrese_Run;
+-- 
+
+VAR b_pesos_extra_1 NUMBER;
+EXEC :b_pesos_extra_1 := 0.001;
+
+VAR b_pesos_extra_2 NUMBER;
+EXEC :b_pesos_extra_2 := 0.003;
+
+VAR b_pesos_extra_3 NUMBER;
+EXEC :b_pesos_extra_3 := 0.0055;
+DECLARE
+v_nro_cliente NUMBER;
+v_numrun varchar2(40);
+v_nombre varchar2(50);
+v_tipo_cliente tipo_cliente.nombre_tipo_cliente%type;
+v_fecha_credito credito_cliente.fecha_otorga_cred%type;
+v_monto_solicitado credito_cliente.monto_solicitado%type;
+v_pesos_extra number;
+BEGIN
+SELECT cl.NRO_CLIENTE ,
+TO_CHAR(cl.numrun, '99g999g999') ||'-'||cl.dvrun,
+cl.pnombre||' '|| cl.snombre||' '||cl.appaterno||' '||cl.apmaterno ,
+tc.nombre_tipo_cliente , 
+SUM(cc.monto_solicitado)
+
+INTO v_nro_cliente, v_numrun, v_nombre, v_tipo_cliente, v_monto_solicitado
+
+FROM cliente cl 
+INNER JOIN tipo_cliente tc
+    ON cl.cod_tipo_cliente = tc.cod_tipo_cliente 
+INNER JOIN credito_cliente cc 
+    ON cc.nro_cliente = cl.nro_cliente
+WHERE EXTRACT(YEAR from cc.fecha_otorga_cred) = TO_CHAR(SYSDATE,'YYYY')-1  and cl.numrun = :b_rut
+GROUP BY cl.NRO_CLIENTE,
+TO_CHAR(cl.numrun, '99g999g999') ||'-'||cl.dvrun,
+cl.pnombre||' '|| cl.snombre||' '||cl.appaterno||' '||cl.apmaterno,
+tc.nombre_tipo_cliente,
+cc.fecha_otorga_cred;
+
+v_pesos_extra :=
+CASE 
+ WHEN v_monto_solicitado < 1000000 THEN (v_monto_solicitado * :b_pesos_extra_1) + (v_monto_solicitado * 0.012)
+ WHEN v_monto_solicitado <= 3000000 THEN (v_monto_solicitado * :b_pesos_extra_2) + (v_monto_solicitado * 0.012)
+ WHEN v_monto_solicitado > 3000000 THEN (v_monto_solicitado * :b_pesos_extra_3) + (v_monto_solicitado * 0.012)
+ END;
+ 
+ INSERT INTO cliente_todosuma values (v_nro_cliente,v_numrun, v_nombre,v_tipo_cliente,v_monto_solicitado,v_pesos_extra);
+END;
+/
+
+
+
+
+
+
+-- ejercicio 2
+
+TRUNCATE TABLE cumpleanno_cliente;
+VAR b_rut NUMBER;
+EXEC :b_rut:=&Ingrese_rut;
+
+VAR b_gifcard1 NUMBER;
+EXEC :b_gifcard1 := 1;
+
+VAR b_gifcard2 NUMBER;
+EXEC :b_gifcard2 := 50000;
+
+VAR b_gifcard3 NUMBER;
+EXEC :b_gifcard3 := 100000;
+
+VAR b_gifcard4 NUMBER;
+EXEC :b_gifcard4 := 200000;
+
+VAR b_gifcard5 NUMBER;
+EXEC :b_gifcard5 := 300000;
+
+DECLARE
+v_num_cl cliente.nro_cliente%TYPE;
+v_rut VARCHAR2(15);
+v_nombre VARCHAR2(45);
+v_profesion VARCHAR2(40);
+v_fecha_nacimiento VARCHAR2(30);
+v_gifcard NUMBER;
+v_total_ahorro NUMBER;
+v_observacion VARCHAR2(70);
+BEGIN
+ SELECT  c.nro_cliente ,
+        TO_CHAR(c.numrun, '99g999g999') ||'-'||c.dvrun,
+        INITCAP(c.pnombre||' '|| c.snombre||' '||c.appaterno||' '||c.apmaterno),
+        po.nombre_prof_ofic,
+        TO_CHAR (c.fecha_nacimiento, 'DD " de " MONTH'),
+        SUM (pic.monto_total_ahorrado),
+        EXTRACT(MONTH FROM c.fecha_nacimiento)-1
+    INTO v_num_cl, v_rut, v_nombre, v_profesion, v_fecha_nacimiento, v_total_ahorro , v_observacion
+ FROM cliente c
+ INNER JOIN profesion_oficio po
+    ON po.cod_prof_ofic = c.cod_prof_ofic
+ LEFT JOIN producto_inversion_cliente pic
+    ON pic.nro_cliente = c.nro_cliente
+ WHERE c.numrun =:b_rut
+ GROUP BY c.nro_cliente, c.numrun, c.dvrun, c.pnombre, c.snombre, c.appaterno, c.apmaterno,
+         po.nombre_prof_ofic, c.fecha_nacimiento;
+
+v_gifcard :=
+ CASE 
+   WHEN v_total_ahorro < 900001 THEN (0)
+   WHEN v_total_ahorro BETWEEN 900001 AND 2000000 THEN ( :b_gifcard2)
+   WHEN v_total_ahorro BETWEEN 200001 AND  5000000 THEN (:b_gifcard3)
+   WHEN v_total_ahorro BETWEEN 500001 AND  8000000 THEN ( :b_gifcard4)
+   WHEN v_total_ahorro BETWEEN 800001 AND  15000000 THEN ( :b_gifcard5)
+ END;
+ IF EXTRACT(MONTH FROM SYSDATE) != v_observacion THEN
+    v_observacion := 'El cliente no esta de cumpleaños el mes del proceso';
+ 
+ END IF;
+    
+ DBMS_OUTPUT.PUT_LINE('Giftcard: '|| v_gifcard);
+INSERT INTO cumpleanno_cliente VALUES (v_num_cl, v_rut, v_nombre, v_profesion, v_fecha_nacimiento, v_gifcard, v_observacion); 
+END;
+
+
+
+-- ejercicio 3
+/* practica3_caso3  */
+
+declare
+b_nro_solic_credito	  number(10);
+b_nro_cliente	        number(5);
+b_cuotas_a_postergar	number(2);
+
+v_solic_credito	      number(10);
+v_nro_cliente         number(5);
+v_cod_credito         number(3);
+v_nro_cuota		        number(2);
+v_fecha_venc_cuota	  date;
+v_valor_cuota		      number(10);
+v_fecha_pago_cuota	  date;
+v_monto_pagado		    number(10);
+v_saldo_por_pagar	    number(10);
+v_cod_forma_pago	    number(2);
+v_monto_cuota         number(10);
+
+v_cant_cred_year_ant  number(2);
+v_ult_cuota_pag       number(2);
+v_total_cuotas        number(2);
+v_cuotas_postergar    number(2);
+
+begin
+
+select 
+ccc.nro_solic_credito, 
+cc.nro_cliente, 
+cc.cod_credito, 
+cc.total_cuotas_credito, 
+(select max(nro_cuota) from cuota_credito_cliente where nro_solic_credito=ccc.nro_solic_credito and cod_forma_pago in (1,2,3) ),
+(select count(nro_solic_credito) from credito_cliente where nro_cliente = cc.nro_cliente and extract(year from sysdate)= extract(year from fecha_otorga_cred)+1 ),
+ccc.fecha_venc_cuota, 
+ccc.valor_cuota, 
+ccc.fecha_pago_cuota, 
+ccc.cod_forma_pago
+
+into v_solic_credito,v_nro_cliente,v_cod_credito,v_total_cuotas,v_ult_cuota_pag,v_cant_cred_year_ant,v_fecha_venc_cuota,v_valor_cuota,v_fecha_pago_cuota,v_cod_forma_pago
+
+from credito_cliente cc
+join cuota_credito_cliente ccc on ccc.nro_solic_credito = cc.nro_solic_credito
+where cc.nro_solic_credito = &b_nro_solic_credito and cc.nro_cliente = &b_nro_cliente and 
+      ccc.cod_forma_pago in (1,2,3) and cc.cod_credito in (1,2,3) and rownum = 1;
+      
+v_cuotas_postergar := &b_cuotas_a_postergar;
+v_monto_cuota := v_valor_cuota;
+
+if v_cant_cred_year_ant >= 2 then
+  update cuota_credito_cliente
+    set
+      fecha_pago_cuota = fecha_venc_cuota,
+      monto_pagado = valor_cuota
+  where nro_solic_credito = v_solic_credito and nro_cuota = v_total_cuotas;
+  commit;
+end if;
+
+if v_cuotas_postergar = 1 then
+  case v_cod_credito
+  when 1 then
+    v_nro_cuota := v_total_cuotas + 1;
+    v_fecha_venc_cuota := add_months(v_fecha_venc_cuota, 1);
+    insert into cuota_credito_cliente (nro_solic_credito, nro_cuota, fecha_venc_cuota, valor_cuota, fecha_pago_cuota, monto_pagado, saldo_por_pagar, cod_forma_pago)
+    values (v_solic_credito, v_nro_cuota, v_fecha_venc_cuota, v_valor_cuota,null,null,null,null);
+  when 2 then
+    v_nro_cuota := v_total_cuotas + 1;
+    v_fecha_venc_cuota := add_months(v_fecha_venc_cuota, 1);
+    v_valor_cuota := v_monto_cuota * 1.01;
+    insert into cuota_credito_cliente (nro_solic_credito, nro_cuota, fecha_venc_cuota, valor_cuota, fecha_pago_cuota, monto_pagado, saldo_por_pagar, cod_forma_pago)
+    values (v_solic_credito, v_nro_cuota, v_fecha_venc_cuota, v_valor_cuota,null,null,null,null);
+  when 3 then
+    v_nro_cuota := v_total_cuotas + 1;
+    v_fecha_venc_cuota := add_months(v_fecha_venc_cuota, 1);
+    v_valor_cuota := v_monto_cuota * 1.02;
+    insert into cuota_credito_cliente (nro_solic_credito, nro_cuota, fecha_venc_cuota, valor_cuota, fecha_pago_cuota, monto_pagado, saldo_por_pagar, cod_forma_pago)
+    values (v_solic_credito, v_nro_cuota, v_fecha_venc_cuota, v_valor_cuota,null,null,null,null);
+  end case;
+  commit;
+else
+  case v_cod_credito
+  when 1 then
+    v_nro_cuota := v_total_cuotas + 1;
+    v_fecha_venc_cuota := add_months(v_fecha_venc_cuota, 1);
+    v_valor_cuota := v_monto_cuota * 1.005;
+    insert into cuota_credito_cliente (nro_solic_credito, nro_cuota, fecha_venc_cuota, valor_cuota, fecha_pago_cuota, monto_pagado, saldo_por_pagar, cod_forma_pago)
+    values (v_solic_credito, v_nro_cuota, v_fecha_venc_cuota, v_valor_cuota,null,null,null,null);
+      
+    v_nro_cuota := v_total_cuotas + 2;
+    v_fecha_venc_cuota := add_months(v_fecha_venc_cuota, 2);
+    v_valor_cuota := v_monto_cuota * 1.005;
+    insert into cuota_credito_cliente (nro_solic_credito, nro_cuota, fecha_venc_cuota, valor_cuota, fecha_pago_cuota, monto_pagado, saldo_por_pagar, cod_forma_pago)
+    values (v_solic_credito, v_nro_cuota, v_fecha_venc_cuota, v_valor_cuota,null,null,null,null);
+    commit;
+  else
+    DBMS_OUTPUT.PUT_LINE('Excede el número de cuotas: ');
+  end case;
+end if;
+end;

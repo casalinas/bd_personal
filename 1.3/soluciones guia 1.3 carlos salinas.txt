@@ -1,0 +1,248 @@
+
+-- EJERCICIO 1 ------------------------------------------------------------
+-- Declaración de variables bind
+
+VAR B_RUT NUMBER;
+EXEC :B_RUT :=&RUT;
+-- RUT 1 21242003
+-- RUT 2 22176845
+-- RUT 3 18858542
+-- RUT 4 21300628
+-- RUT 5 22558061
+
+-- Declaración de beneficios clientes
+VAR B_PSOS_NORMALES NUMBER;
+EXEC :B_PSOS_NORMALES := 0.012;
+
+VAR B_PSOS_EXTRA_1 NUMBER;
+EXEC :B_PSOS_EXTRA_1 := 0.001;
+
+VAR B_PSOS_EXTRA_2 NUMBER;
+EXEC :B_PSOS_EXTRA_2 := 0.003;
+
+VAR B_PSOS_EXTRA_3 NUMBER;
+EXEC :B_PSOS_EXTRA_3 := 0.0055;
+
+DECLARE 
+-- variables escalares para calculos y asignacion de datos en tablas
+V_NRO_CLIENTE NUMBER;
+V_RUN_CLIENTE VARCHAR2(15);
+V_NOMBRE_CLIENTE VARCHAR2(50);
+V_TIPO_CLIENTE VARCHAR2(30);
+V_MONTO_SOLICITADO NUMBER(10,0);
+V_MONTO_PESOS_TODOSUMA NUMBER;
+
+BEGIN
+-- seleccion de datos de tablas 
+SELECT cli.NRO_CLIENTE ,
+TO_CHAR(cli.numrun, '99G999G999')||'-'||cli.dvrun,
+cli.pnombre||' '|| cli.snombre||' '||cli.appaterno||' '||cli.apmaterno ,
+tc.nombre_tipo_cliente , 
+SUM(cc.monto_solicitado)
+
+INTO V_NRO_CLIENTE, V_RUN_CLIENTE, V_NOMBRE_CLIENTE, V_TIPO_CLIENTE, V_MONTO_SOLICITADO
+-- joins necesarios
+FROM cliente cli 
+ JOIN tipo_cliente tc
+    ON (cli.cod_tipo_cliente = tc.cod_tipo_cliente) 
+ JOIN credito_cliente cc 
+    ON (cc.nro_cliente = cli.nro_cliente)
+    -- condicion para retornar solo una fila con datos de un cliente
+WHERE EXTRACT(YEAR from cc.fecha_otorga_cred) = TO_CHAR(SYSDATE,'YYYY')-1  and cli.numrun = :B_RUT
+
+GROUP BY cli.NRO_CLIENTE,
+TO_CHAR(cli.numrun, '99G999G999') ||'-'||cli.dvrun,
+cli.pnombre||' '|| cli.snombre||' '||cli.appaterno||' '||cli.apmaterno,
+tc.nombre_tipo_cliente,
+cc.fecha_otorga_cred;
+
+    -- if para realizar calculo en caso de que correspondan los pesos extra
+    IF    V_MONTO_SOLICITADO     < 1000000 AND V_TIPO_CLIENTE LIKE 'Trabajadores independientes' THEN V_MONTO_PESOS_TODOSUMA := (V_MONTO_SOLICITADO * :B_PSOS_NORMALES) + (V_MONTO_SOLICITADO * :B_PSOS_EXTRA_1 );
+    ELSIF V_MONTO_SOLICITADO     <= 3000000 AND V_TIPO_CLIENTE LIKE 'Trabajadores independientes' THEN V_MONTO_PESOS_TODOSUMA := (V_MONTO_SOLICITADO * :B_PSOS_NORMALES) + (V_MONTO_SOLICITADO * :B_PSOS_EXTRA_2 );
+    ELSIF V_MONTO_SOLICITADO     > 3000000 AND V_TIPO_CLIENTE LIKE 'Trabajadores independientes' THEN V_MONTO_PESOS_TODOSUMA := (V_MONTO_SOLICITADO * :B_PSOS_NORMALES) + (V_MONTO_SOLICITADO * :B_PSOS_EXTRA_3);
+    ELSE V_MONTO_PESOS_TODOSUMA := (V_MONTO_SOLICITADO * :B_PSOS_NORMALES);
+    END IF;
+
+ -- inserción final de datos en tabla cliente_todosuma
+ INSERT INTO cliente_todosuma values (V_NRO_CLIENTE,V_RUN_CLIENTE, V_NOMBRE_CLIENTE,V_TIPO_CLIENTE,V_MONTO_SOLICITADO,V_MONTO_PESOS_TODOSUMA);
+END;
+/
+
+-- EJERCICIO 2  ------------------------------------------------------------------------------------------------------------
+
+-- DECLARACION BIND (VARIABLES PARAMÉTRICAS)
+VAR B_RUT NUMBER;
+EXEC :B_RUT:=&RUT;
+-- RUT 1 12362093
+-- RUT 1 07455786
+-- RUT 1 06604005
+-- RUT 1 08925537
+-- RUT 1 24617341
+VAR B_MONTO_GIFT_1 NUMBER;
+EXEC :B_MONTO_GIFT_1 := 50000;
+
+VAR B_MONTO_GIFT_2 NUMBER;
+EXEC :B_MONTO_GIFT_2 := 100000;
+
+VAR B_MONTO_GIFT_3 NUMBER;
+EXEC :B_MONTO_GIFT_3 := 200000;
+
+VAR B_MONTO_GIFT_4 NUMBER;
+EXEC :B_MONTO_GIFT_4 := 300000;
+
+
+-- DECLARACION VARIABLES ESCALARES
+DECLARE
+V_NRO_CLIENTE NUMBER(5,0);
+V_RUN_CLIENTE VARCHAR2(15);
+V_NOMBRE_CLIENTE VARCHAR2(50);
+V_PROFESION_OFICIO VARCHAR2(30);
+V_DIA_CUMPLEANO VARCHAR2(20);
+V_AHORRO_TOTAL NUMBER;
+
+-- VARIABLES MONTO_GIFTCARD Y OBSERVACIÓN SE CONDICIONARAN CON POSTERIOR IF
+V_MONTO_GIFCARD NUMBER(8,0) := 0;
+V_OBSERVACION VARCHAR2(60);
+
+    BEGIN
+    SELECT  cli.nro_cliente ,
+            TO_CHAR(cli.numrun, '99G999G999')||'-'||cli.dvrun,
+             cli.pnombre||' '|| cli.snombre||' '||cli.appaterno||' '||cli.apmaterno,
+             pro.nombre_prof_ofic,
+            TO_CHAR (cli.fecha_nacimiento, 'DD " de " MONTH'),
+            SUM (pic.monto_total_ahorrado),
+        EXTRACT(MONTH FROM cli.fecha_nacimiento)-1
+        
+    INTO V_NRO_CLIENTE, V_RUN_CLIENTE, V_NOMBRE_CLIENTE, V_PROFESION_OFICIO, V_DIA_CUMPLEANO, V_AHORRO_TOTAL , V_OBSERVACION
+ 
+ FROM cliente cli
+  JOIN profesion_oficio pro
+    ON pro.cod_prof_ofic = cli.cod_prof_ofic
+ LEFT JOIN producto_inversion_cliente pic
+    ON pic.nro_cliente = cli.nro_cliente
+ WHERE cli.numrun =:b_rut
+ GROUP BY cli.nro_cliente, cli.numrun, cli.dvrun, cli.pnombre, cli.snombre, cli.appaterno, cli.apmaterno,
+         pro.nombre_prof_ofic, cli.fecha_nacimiento;
+
+    -- USAMOS LAS CONDICIONES DE CANTIDAD DE AHORRO PARA ASIGNAR EL MONTO DE GIFTCARD QUE CORRESPONDA,
+    -- SI ES MENOR AL MONTO MINIMO NECESARIO, SE MANTIENE EN 0 EL MONTO 
+    IF V_AHORRO_TOTAL <= 900000 THEN V_MONTO_GIFCARD := v_monto_gifcard;
+    ELSIF V_AHORRO_TOTAL > 900000 AND V_AHORRO_TOTAL <= 2000000 THEN V_MONTO_GIFCARD := :B_MONTO_GIFT_1;
+     ELSIF V_AHORRO_TOTAL >= 2000000 AND V_AHORRO_TOTAL <= 5000000 THEN V_MONTO_GIFCARD := :B_MONTO_GIFT_2;
+      ELSIF V_AHORRO_TOTAL > 5000000 AND V_AHORRO_TOTAL <= 8000000 THEN V_MONTO_GIFCARD := :B_MONTO_GIFT_3;
+       ELSIF V_AHORRO_TOTAL > 8000000 AND V_AHORRO_TOTAL <= 15000000 THEN V_MONTO_GIFCARD := :B_MONTO_GIFT_4;
+    END IF;
+
+    -- SI EL CLIENTE ESTA DE CUMPLEAÑOS EL MES DE CONSULTA SERA REFLEJADO EN LA COLUMNA OBSERVACIÓN
+    -- SI NO ESTA DE CUMPLEAÑOS TAMBIEN SE NOS SERÁ INFORMADO
+ IF EXTRACT(MONTH FROM SYSDATE) = V_OBSERVACION THEN
+    V_OBSERVACION := 'El cliente SI esta de cumpleaños en el mes del proceso';
+ ELSIF EXTRACT(MONTH FROM SYSDATE) <> V_OBSERVACION THEN
+    V_OBSERVACION := 'El cliente NO esta de cumpleaños en el mes del proceso';
+ 
+ END IF;
+    
+ -- INSERSIÓN FINAL DE DATOS EN TABLA CUMPLEANNO_CLIENTE.
+INSERT INTO cumpleanno_cliente VALUES (V_NRO_CLIENTE, V_RUN_CLIENTE, V_NOMBRE_CLIENTE, V_PROFESION_OFICIO, V_DIA_CUMPLEANO, V_MONTO_GIFCARD, V_OBSERVACION); 
+END;
+/
+
+-- EJERCICIO 3 ------------------------------------------------------------------------------------------------------------
+/* practica3_caso3  */
+
+declare
+b_nro_solic_credito	  number(10);
+b_nro_cliente	        number(5);
+b_cuotas_a_postergar	number(2);
+
+v_solic_credito	      number(10);
+v_nro_cliente         number(5);
+v_cod_credito         number(3);
+v_nro_cuota		        number(2);
+v_fecha_venc_cuota	  date;
+v_valor_cuota		      number(10);
+v_fecha_pago_cuota	  date;
+v_monto_pagado		    number(10);
+v_saldo_por_pagar	    number(10);
+v_cod_forma_pago	    number(2);
+v_monto_cuota         number(10);
+
+v_cant_cred_year_ant  number(2);
+v_ult_cuota_pag       number(2);
+v_total_cuotas        number(2);
+v_cuotas_postergar    number(2);
+
+begin
+
+select 
+ccc.nro_solic_credito, 
+cc.nro_cliente, 
+cc.cod_credito, 
+cc.total_cuotas_credito, 
+(select max(nro_cuota) from cuota_credito_cliente where nro_solic_credito=ccc.nro_solic_credito and cod_forma_pago in (1,2,3) ),
+(select count(nro_solic_credito) from credito_cliente where nro_cliente = cc.nro_cliente and extract(year from sysdate)= extract(year from fecha_otorga_cred)+1 ),
+ccc.fecha_venc_cuota, 
+ccc.valor_cuota, 
+ccc.fecha_pago_cuota, 
+ccc.cod_forma_pago
+
+into v_solic_credito,v_nro_cliente,v_cod_credito,v_total_cuotas,v_ult_cuota_pag,v_cant_cred_year_ant,v_fecha_venc_cuota,v_valor_cuota,v_fecha_pago_cuota,v_cod_forma_pago
+
+from credito_cliente cc
+join cuota_credito_cliente ccc on ccc.nro_solic_credito = cc.nro_solic_credito
+where cc.nro_solic_credito = &b_nro_solic_credito and cc.nro_cliente = &b_nro_cliente and 
+      ccc.cod_forma_pago in (1,2,3) and cc.cod_credito in (1,2,3) and rownum = 1;
+      
+v_cuotas_postergar := &b_cuotas_a_postergar;
+v_monto_cuota := v_valor_cuota;
+
+if v_cant_cred_year_ant >= 2 then
+  update cuota_credito_cliente
+    set
+      fecha_pago_cuota = fecha_venc_cuota,
+      monto_pagado = valor_cuota
+  where nro_solic_credito = v_solic_credito and nro_cuota = v_total_cuotas;
+  commit;
+end if;
+
+if v_cuotas_postergar = 1 then
+  case v_cod_credito
+  when 1 then
+    v_nro_cuota := v_total_cuotas + 1;
+    v_fecha_venc_cuota := add_months(v_fecha_venc_cuota, 1);
+    insert into cuota_credito_cliente (nro_solic_credito, nro_cuota, fecha_venc_cuota, valor_cuota, fecha_pago_cuota, monto_pagado, saldo_por_pagar, cod_forma_pago)
+    values (v_solic_credito, v_nro_cuota, v_fecha_venc_cuota, v_valor_cuota,null,null,null,null);
+  when 2 then
+    v_nro_cuota := v_total_cuotas + 1;
+    v_fecha_venc_cuota := add_months(v_fecha_venc_cuota, 1);
+    v_valor_cuota := v_monto_cuota * 1.01;
+    insert into cuota_credito_cliente (nro_solic_credito, nro_cuota, fecha_venc_cuota, valor_cuota, fecha_pago_cuota, monto_pagado, saldo_por_pagar, cod_forma_pago)
+    values (v_solic_credito, v_nro_cuota, v_fecha_venc_cuota, v_valor_cuota,null,null,null,null);
+  when 3 then
+    v_nro_cuota := v_total_cuotas + 1;
+    v_fecha_venc_cuota := add_months(v_fecha_venc_cuota, 1);
+    v_valor_cuota := v_monto_cuota * 1.02;
+    insert into cuota_credito_cliente (nro_solic_credito, nro_cuota, fecha_venc_cuota, valor_cuota, fecha_pago_cuota, monto_pagado, saldo_por_pagar, cod_forma_pago)
+    values (v_solic_credito, v_nro_cuota, v_fecha_venc_cuota, v_valor_cuota,null,null,null,null);
+  end case;
+  commit;
+else
+  case v_cod_credito
+  when 1 then
+    v_nro_cuota := v_total_cuotas + 1;
+    v_fecha_venc_cuota := add_months(v_fecha_venc_cuota, 1);
+    v_valor_cuota := v_monto_cuota * 1.005;
+    insert into cuota_credito_cliente (nro_solic_credito, nro_cuota, fecha_venc_cuota, valor_cuota, fecha_pago_cuota, monto_pagado, saldo_por_pagar, cod_forma_pago)
+    values (v_solic_credito, v_nro_cuota, v_fecha_venc_cuota, v_valor_cuota,null,null,null,null);
+      
+    v_nro_cuota := v_total_cuotas + 2;
+    v_fecha_venc_cuota := add_months(v_fecha_venc_cuota, 2);
+    v_valor_cuota := v_monto_cuota * 1.005;
+    insert into cuota_credito_cliente (nro_solic_credito, nro_cuota, fecha_venc_cuota, valor_cuota, fecha_pago_cuota, monto_pagado, saldo_por_pagar, cod_forma_pago)
+    values (v_solic_credito, v_nro_cuota, v_fecha_venc_cuota, v_valor_cuota,null,null,null,null);
+    commit;
+  else
+    DBMS_OUTPUT.PUT_LINE('Excede el número de cuotas: ');
+  end case;
+end if;
+end;

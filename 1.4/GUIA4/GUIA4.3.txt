@@ -1,0 +1,61 @@
+--Lo ejecutamos con el año 2021
+VAR b_annio NUMBER;
+EXEC :b_annio:=&Ingrese_año
+--el porcentaje de 22,5 porciento, lo deje como entero, por lo que se debe ingresar el 225.
+VAR b_porcentaje NUMBER;
+EXEC :b_porcentaje:=&Porcentaje
+DECLARE
+v_min NUMBER;
+v_max NUMBER;
+v_id NUMBER;
+v_varriendo NUMBER;
+v_garantia camion.valor_garantia_dia%TYPE;
+v_total NUMBER;
+BEGIN
+--poblando tabla historial arriendo anual camion
+EXECUTE IMMEDIATE ('TRUNCATE TABLE hist_arriendo_anual_camion');
+INSERT INTO hist_arriendo_anual_camion
+  SELECT :b_annio,
+         c.id_camion,
+         c.nro_patente,
+         c.valor_arriendo_dia,
+         c.valor_garantia_dia,
+         COUNT(ac.id_camion) 
+
+ FROM camion c
+  LEFT JOIN arriendo_camion ac
+    ON c.id_camion = ac.id_camion
+    AND  EXTRACT(YEAR FROM ac.fecha_ini_arriendo)=:b_annio
+ GROUP BY c.id_camion,c.nro_patente,c.valor_arriendo_dia,c.valor_garantia_dia;
+
+--Sacamos una lista que le entregaremos al loop para recorrer a cada empleado
+ SELECT MIN(id_camion),
+        MAX(id_camion) 
+    INTO v_min, v_max 
+ FROM camion;
+--Cambiando tabla camion
+LOOP
+  SELECT c.id_camion,
+         c.valor_arriendo_dia,
+         c.valor_garantia_dia,
+         COUNT(ac.id_camion) 
+     INTO v_id, v_varriendo, v_garantia, v_total
+ FROM camion c
+  LEFT JOIN arriendo_camion ac
+    ON c.id_camion = ac.id_camion
+    AND  EXTRACT(YEAR FROM ac.fecha_ini_arriendo)=:b_annio
+  WHERE c.id_camion=v_min
+ GROUP BY c.id_camion,c.valor_arriendo_dia,c.valor_garantia_dia;
+ 
+ 
+  IF v_total<4 THEN
+    UPDATE camion
+    SET valor_arriendo_dia=(v_varriendo-((v_varriendo*:b_porcentaje)/1000)),
+        valor_garantia_dia=v_garantia-((v_garantia*:b_porcentaje)/1000)
+    WHERE id_camion=v_min;
+ END IF;
+ --aumentamos el minimo en 1 para que recorra a un empleado diferente en cada ciclo.
+ v_min:=v_min+1;
+ EXIT WHEN v_min>v_max;
+ END LOOP;
+ END;

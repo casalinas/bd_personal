@@ -1,0 +1,69 @@
+--ejercicio 1 guia 1_2_3
+
+var b_rut number;
+exec :b_rut := &rut;
+/*
+rut 1 = 11846972
+rut 2 = 12272880
+rut 3 = 12113369
+rut 4 = 11999100
+rut 5 = 12868553
+*/
+
+var b_MariaPinto number;
+exec :b_MariaPinto := 20000;
+
+var b_Curacavi number;
+exec :b_Curacavi := 25000;
+
+var b_Talagante number;
+exec :b_Talagante := 30000;
+
+var b_ElMonte number;
+exec :b_ElMonte := 35000;
+
+var b_Buin number;
+exec :b_Buin := 20000;
+declare
+v_anno number;
+v_run_emp number;
+v_dv_run varchar2(2);
+v_nombre varchar2(50);
+v_sueldo number;
+v_porc_mov_normal number;
+v_valor_mov_normal number ;
+v_valor_total_mov number;
+v_mov_extra number;
+v_total_mov number;
+v_comuna comuna.nombre_comuna%type;
+begin
+
+select DISTINCT extract (year from arr.fecha_ini_arriendo),
+e.numrun_emp,
+e.dvrun_emp,
+e.pnombre_emp||' '|| e.snombre_emp||' '|| e.appaterno_emp||' '||e.apmaterno_emp as nombre_empleado,
+e.sueldo_base,
+co.nombre_comuna
+INTO v_anno,v_run_emp, v_dv_run,v_nombre ,v_sueldo, v_comuna
+from arriendo_camion arr
+INNER JOIN cliente cli ON (arr.numrun_cli=cli.numrun_cli)
+INNER JOIN estado_civil est ON (est.id_estado_civil=cli.id_estado_civil)
+INNER JOIN empleado e on (e.id_estado_civil=cli.id_estado_civil)
+INNER JOIN comuna co on (co.id_comuna = e.id_comuna)
+where e.numrun_emp = :b_rut AND extract(year from arr.fecha_ini_arriendo)=2022;
+
+v_porc_mov_normal := trunc(v_sueldo / 100000);
+v_valor_mov_normal := v_sueldo * v_porc_mov_normal/100;
+
+IF v_comuna like 'Maria%' THEN v_mov_extra := :b_MariaPinto;
+ELSIF v_comuna like 'Curacavi%' THEN v_mov_extra := :b_Curacavi;
+ELSIF v_comuna like 'Talagante%' THEN v_mov_extra := :b_Talagante;
+ELSIF v_comuna like 'El Monte' THEN v_mov_extra:= :b_ElMonte;
+ELSIF v_comuna like 'Buin' THEN v_mov_extra := :b_Buin;
+END IF;
+
+v_total_mov := v_valor_mov_normal + v_mov_extra;
+
+INSERT INTO proy_movilizacion VALUES (v_anno,v_run_emp,v_dv_run,v_nombre,v_sueldo,v_porc_mov_normal,v_valor_mov_normal,v_mov_extra,v_total_mov);
+
+end;

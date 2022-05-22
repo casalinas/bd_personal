@@ -1,0 +1,69 @@
+
+DECLARE
+v_min NUMBER;
+v_max NUMBER;
+v_id NUMBER;
+v_run NUMBER;
+v_dv VARCHAR2(1);
+v_nombre_completo VARCHAR2(60);
+v_estado_civ VARCHAR2(40);
+v_sueldo VARCHAR2(30);
+v_fecha_contrato VARCHAR2(3);
+v_pnombre NUMBER;
+v_nacimiento NUMBER;
+v_papellido VARCHAR2(15);
+v_id_estado NUMBER;
+v_usuario VARCHAR2(20);
+v_clve VARCHAR2(25);
+BEGIN
+--SE TRUNCA LA TABLA EN EJECUCION. 
+EXECUTE IMMEDIATE ('TRUNCATE TABLE usuario_clave');
+--Sacamos una lista que le entregaremos al loop para recorrer a cada empleado
+ SELECT MIN(id_emp),
+        MAX(id_emp) 
+    INTO v_min, v_max 
+ FROM empleado;
+LOOP
+SELECT  em.id_emp,
+        em.numrun_emp,
+        em.dvrun_emp,
+        em.pnombre_emp||' '||em.snombre_emp||' '||em.appaterno_emp||' '||em.apmaterno_emp,
+        ec.nombre_estado_civil,
+        em.sueldo_base,
+        --requerimiento años de contrato
+        ROUND(MONTHS_BETWEEN(SYSDATE,em.fecha_contrato)/12),
+        --requerimiento largo de nombre
+        LENGTH(em.pnombre_emp),
+        --requerimiento año nacimiento aumentado 2
+        EXTRACT(YEAR FROM em.fecha_nac)+2,
+        em.appaterno_emp,
+        ec.id_estado_civil
+    INTO v_id, v_run, v_dv, v_nombre_completo, v_estado_civ, v_sueldo, v_fecha_contrato, v_pnombre, v_nacimiento, v_papellido, v_id_estado
+FROM empleado em
+INNER JOIN estado_civil ec
+    ON em.id_estado_civil = ec.id_estado_civil
+WHERE em.id_emp=v_min;
+--requerimiento x si el empleado lleva menos de 10 años. 
+IF v_fecha_contrato<10 THEN
+    v_fecha_contrato:=v_fecha_contrato||'x';
+END IF;
+--requerimiento dos letras del apellido en minuscula.
+v_papellido:=
+CASE 
+  WHEN v_id_estado=10 OR v_id_estado=60 THEN LOWER(SUBSTR(v_papellido, 1, 2))
+  WHEN v_id_estado=20 OR v_id_estado=30 THEN LOWER(SUBSTR(v_papellido, 1, 1))||LOWER(SUBSTR(v_papellido, -1, 1))
+  WHEN v_id_estado= 40 THEN LOWER(SUBSTR(v_papellido, -3, 2))
+  WHEN v_id_estado= 50 THEN LOWER(SUBSTR(v_papellido, -2, 2))
+END;
+COMMIT;
+v_usuario:=(LOWER(SUBSTR(v_estado_civ,1,1))||SUBSTR(v_nombre_completo,1,3)||v_pnombre||'*'||SUBSTR(v_sueldo,-1,1)||v_dv||v_fecha_contrato);
+v_clve:=(SUBSTR(v_run, 3,1)||v_nacimiento||SUBSTR(v_sueldo, -3,3)||v_papellido||v_id||TO_CHAR(SYSDATE,'MMYYYY'));
+INSERT INTO usuario_clave VALUES
+(v_id, v_run, v_dv, v_nombre_completo, v_usuario, v_clve);
+
+--Aumentamos el minimo en 10 para que recorra a un empleado diferente en cada ciclo.
+v_min:=v_min+10;
+--La condicion para que cuando esten todos los ID recorridos, termine el ciclo. 
+EXIT WHEN v_min>v_max;
+END LOOP;
+END;

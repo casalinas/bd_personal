@@ -1,0 +1,134 @@
+/* EJERCICIO 1 */
+
+declare
+b_anno_proceso        number(4);
+b_mov_mariapinto      number(7);
+b_mov_curacavi        number(7);
+b_mov_talagante       number(7);
+b_mov_elmonte         number(7);
+b_mov_buin            number(7);
+
+v_mov_mariapinto      number(7);
+v_mov_curacavi        number(7);
+v_mov_talagante       number(7);
+v_mov_elmonte         number(7);
+v_mov_buin            number(7);
+
+v_min_id_emp          number(6);
+v_max_id_emp          number(6);
+v_anno_proceso        number(4);
+v_id_emp              number(6);
+v_numrun_emp          number(10);
+v_dvrun_emp           varchar2(1);
+v_appaterno_emp       varchar2(30);
+v_apmaterno_emp       varchar(30);
+v_pnombre_emp         varchar(25);
+v_snombre_emp         varchar2(25);
+v_nombre_empleado     varchar2(115);
+v_id_comuna           number(3);
+v_nombre_comuna       varchar2(30);
+v_sueldo_base         number(7);
+v_porc_movil_normal   number(6,2);
+v_valor_movil_normal  number(7);
+v_valor_movil_extra   number(7);
+v_valor_total_movil   number(7);
+
+begin
+  delete proy_movilizacion;
+  
+  select min(id_emp), max(id_emp) into v_min_id_emp, v_max_id_emp FROM empleado;
+  
+  v_anno_proceso := &b_anno_proceso;
+  v_mov_mariapinto := &b_mov_mariapinto;
+  v_mov_curacavi := &b_mov_curacavi;
+  v_mov_talagante := &b_mov_talagante;
+  v_mov_elmonte := &b_mov_elmonte;
+  v_mov_buin := &b_mov_buin;
+
+  while v_max_id_emp >= v_min_id_emp loop
+    select e.id_emp, e.numrun_emp, e.dvrun_emp, 
+    e.pnombre_emp || ' ' || e.snombre_emp || ' ' || e.appaterno_emp || ' ' || e.apmaterno_emp as v_nombre_empleado,
+    e.id_comuna, c.nombre_comuna, e.sueldo_base
+    INTO v_id_emp, v_numrun_emp, v_dvrun_emp, v_nombre_empleado, v_id_comuna, v_nombre_comuna, v_sueldo_base
+    FROM empleado e
+    join comuna c on c.id_comuna = e.id_comuna
+    where e.id_emp = v_min_id_emp;
+    v_porc_movil_normal := trunc(v_sueldo_base/100000);
+    v_valor_movil_normal := round(v_sueldo_base * v_porc_movil_normal/100);
+    
+    v_valor_movil_extra := case
+    when v_id_comuna = 117 then v_mov_mariapinto
+    when v_id_comuna = 118 then v_mov_curacavi
+    when v_id_comuna = 119 then v_mov_talagante
+    when v_id_comuna = 120 then v_mov_elmonte
+    when v_id_comuna = 121 then v_mov_buin
+    else 0
+    end;
+    v_valor_total_movil := v_valor_movil_normal + v_valor_movil_extra;
+    insert into proy_movilizacion 
+    values (v_anno_proceso,v_id_emp,v_numrun_emp,v_dvrun_emp,v_nombre_empleado,v_nombre_comuna,v_sueldo_base,v_porc_movil_normal,v_valor_movil_normal,v_valor_movil_extra,v_valor_total_movil);
+    v_min_id_emp := v_min_id_emp + 10;
+  end loop;
+  commit;
+end;
+/
+
+-- EJERCICIO 2
+DECLARE
+V_MAX_ID NUMBER;
+V_MIN_ID NUMBER;
+
+V_ID NUMBER (6,0);
+V_RUN NUMBER (10,0);
+V_NOMBRE VARCHAR2(70);
+
+V_EST_CIVIL VARCHAR2(1);
+V_TRES_L_NOMBRE VARCHAR2(3);
+V_LARGO_NOMBRE VARCHAR2(2);
+V_ASTERISCO VARCHAR2(1);
+V_ULT_DIG_SUELDO VARCHAR2(1);
+V_DV_RUN VARCHAR2(1);
+V_ANNOS_TRABAJADOS VARCHAR2(2);
+V_X VARCHAR2 (1);
+V_NOMBRE_USUARIO VARCHAR2(30);
+
+cursor recorre is 
+select emp.id_emp, 
+emp.numrun_emp, 
+emp.pnombre_emp||' '||emp.snombre_emp||' '||emp.appaterno_emp||' '||emp.apmaterno_emp nombre,
+LOWER(SUBSTR(est.nombre_estado_civil,1,1)),
+SUBSTR(emp.pnombre_emp,1,3),
+LENGTH(emp.pnombre_emp),
+'*',
+SUBSTR(emp.sueldo_base,-1,1),
+emp.dvrun_emp,
+TRUNC(MONTHS_BETWEEN (SYSDATE,emp.fecha_contrato)/12),
+'X'
+from empleado emp
+join estado_civil est on (est.id_estado_civil = emp.id_estado_civil);
+
+BEGIN  
+
+DELETE USUARIO_CLAVE CASCADE;
+open recorre;
+loop
+FETCH recorre INTO V_ID, v_run, v_nombre, v_est_civil,v_tres_l_nombre,v_largo_nombre,v_asterisco,v_ult_dig_sueldo,v_dv_run,v_annos_trabajados,v_x;
+
+ V_NOMBRE_USUARIO := v_est_civil || v_tres_l_nombre || v_largo_nombre|| v_asterisco|| v_ult_dig_sueldo|| v_dv_run|| v_annos_trabajados ;
+ 
+ IF 
+  v_annos_trabajados > 10 THEN v_nombre_usuario := v_nombre_usuario;
+ 
+ ELSIF 
+  v_annos_trabajados < 10 THEN V_NOMBRE_USUARIO := V_NOMBRE_USUARIO || v_x ;
+ 
+
+ END IF;
+ 
+  exit when recorre%notfound;
+
+  INSERT INTO usuario_clave VALUES (V_ID,V_RUN,v_dv_run,V_NOMBRE,V_NOMBRE_USUARIO,'x');  
+ 
+END LOOP;
+close recorre;
+END;

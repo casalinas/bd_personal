@@ -1,0 +1,19 @@
+COMANDOS GIT
+
+ACTUALIZAR VERSION INSTALADA:
+git update-git-for-windows o solo git update
+
+cuando se crea un nuevo repositorio para añadir los datos locales con remoto:
+git remote add origin https://github.com/casalinas/ejercicios_progra_bd
+git branch -M main
+git push -u origin main
+
+CREAR NUEVO REPOSITORIO
+echo "# sss" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/casalinas/sss.git
+git push -u origin main
+

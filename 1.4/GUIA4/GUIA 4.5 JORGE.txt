@@ -1,0 +1,46 @@
+DECLARE
+v_anno NUMBER;
+v_id NUMBER;
+v_run VARCHAR2(25);
+v_nombre VARCHAR2(55);
+v_cargo VARCHAR2(45);
+v_meses NUMBER;
+v_anios NUMBER;
+v_sueldo_mensual NUMBER;
+v_sueldo_anual NUMBER;
+v_camion NUMBER;
+v_mes NUMBER;
+BEGIN
+EXECUTE IMMEDIATE ('TRUNCATE TABLE info_sii');
+
+ SELECT EXTRACT(YEAR FROM SYSDATE)-1 AS"AÑO" ,
+        e.id_emp,
+        e.numrun_emp||'-'||e.dvrun_emp AS"RUN",
+        e.pnombre_emp||' '||e.snombre_emp||' '||e.appaterno_emp||' '||e.apmaterno_emp AS"NOMBRE",
+        COUNT(c.id_camion) AS"CAMION" ,
+        (ROUND(MONTHS_BETWEEN(SYSDATE,e.fecha_contrato)/12))-1 AS"AÑOS",
+        e.sueldo_base,
+        EXTRACT(MONTH FROM e.fecha_contrato)
+    INTO v_anno, v_id, v_run, v_nombre, v_camion, v_anios, v_sueldo_mensual,v_mes
+ FROM empleado e
+ LEFT JOIN camion c
+    ON e.id_emp = c.id_emp
+WHERE e.id_emp=100
+GROUP BY e.id_emp,e.numrun_emp,e.dvrun_emp,e.pnombre_emp,e.snombre_emp,e.appaterno_emp,
+         e.apmaterno_emp,e.sueldo_base,e.fecha_contrato;
+ v_cargo:=
+  CASE
+    WHEN v_camion>0 THEN 'Encargado de Arriendos'
+    WHEN v_camion=0 THEN 'Labores Administrativas'
+  END;
+  COMMIT;
+ v_meses:=
+  CASE
+    WHEN v_anios>0 THEN 12
+    WHEN v_anios=0 THEN 12 - v_mes
+  END;
+  COMMIT;
+ v_sueldo_anual:=v_sueldo_mensual*v_meses;
+ 
+  DBMS_OUTPUT.PUT_LINE(v_cargo||'  '||v_meses||' '||v_sueldo_anual);
+END;

@@ -1,4 +1,16 @@
+-- PRUEBA 1
+-- Declaracion de variables bind para ingresar fechas de calculo y porcentajes usados para calculos de pertenencia a grupos
+VAR b_bono_cat_A number;
+EXEC :b_bono_cat_A := 15.4;
 
+VAR b_bono_cat_B number;
+EXEC :b_bono_cat_B := 12.3;
+
+VAR b_bono_cat_C number;
+EXEC :b_bono_cat_C := 11.5;
+
+VAR b_bono_sin_cat number;
+EXEC :b_bono_sin_cat := 3;
 
 VAR b_carga_familiar number;
 EXEC :b_carga_familiar := 6300; 
@@ -46,42 +58,49 @@ EXEC :b_bono_grupos_D := 0.20;
 VAR b_bono_sin_grupo number;
 EXEC :b_bono_sin_grupo := 0;
 
+-- truncado de tablas para poder ejecutar el bloque pl/sql reiteradas veces
 truncate table haber_mes_vendedor;
 truncate table descuento_mes_vendedor;
 
+-- declaracion de variables escalares para luego realizar calculos de datos a ingresar en tablas
 DECLARE 
+-- datos de tabla vendedor hasta el sueldo solo son extraidos de tabla
 v_id_vendedor number; v_numrut_vendedor number; v_mes_proceso number;
 v_anno_proceso number; v_sueldo_base number;
 
+-- variables para realizar ejercicio a.(ASIG_ANTIGUEDAD)
 v_asig_antiguedad number; v_annos_antiguedad number;
 
+-- variables para realizar ejercicio b.(ASIG_CARGAS)
 v_n_cargas_familiares number;
 v_asig_cargas number; v_id_carga number;
 
+-- variable para ejercicio c. (COMISIONES)
 v_comisiones number;
--- para hacer d.
+-- variables para ejercicio d. (BONO_CATEG)
 v_bono_categ number;
 v_total_ventas_mes number;
 v_porcentaje number;
 v_id_cat char(1);
 
--- para hacer e
+-- variables para ejercicio e (BONO_GRUPOS).
 v_id_grupo_vr varchar2(1);
 v_bono_grupos_porc number;
 v_bono_grupos number;
 
--- para f.
+-- variables para ejercicio f (DESCUENTOS).
 v_descuentos number;
 v_ant_mes number;
-
+-- variables para ejercicio g (TOTAL_HABERES).
 v_total_haberes number;
 
+-- variables para ejercicio h (DESCUENTOS POR SALUD E ISAPRE).
 v_valor_afp number;
 v_valor_salud number;
 v_porc_desc_afp number;
 v_porc_desc_salud number;
 
-
+-- subconsulta dentro de FOR para recorrer varias filas
 BEGIN
 for i in (
 select 
@@ -140,30 +159,27 @@ sal.porc_descto_salud
 )
 
 ----------------------------------------------------------------------
-
+-- LOOP para recorrer for en ciclos (recorrer filas)
 LOOP
-
+-- variables con asignacion de datos a partir del FOR
 v_numrut_vendedor := i.rut_vendedor;
 v_mes_proceso := i.mes;
 v_anno_proceso := i.anno;
 v_sueldo_base := i.sueldo;
 v_annos_antiguedad := i.antiguedad;
 
-v_total_ventas_mes := i.total_v_mes;
-v_porcentaje := i.porc_venta;
-v_id_cat := i.id_categoria;
 
-v_id_grupo_vr:= i.id_grupo;
+
+
+
+
 
 v_porc_desc_afp := i.desc_afp;
 v_porc_desc_salud := i.desc_salud;
-dbms_output.put_line(v_VALOR_afp||' '||v_valor_salud);
 
 ----------------------------------------------------------------------
---v_ant_mes := i.ant_mes;
 
---dbms_output.put_line('el vendedor '||v_id_vendedor||' tiene '||v_n_cargas_familiares|| ' CARGAS Familiares ');
--- a. calculo por asignacion de antiguedad
+-- a. calculo para asignacion de bono por antiguedad
 v_asig_antiguedad :=  
     CASE    
     WHEN  v_annos_antiguedad BETWEEN 1 AND 9 THEN  ROUND(v_sueldo_base * :b_bonif_antig_tramo_1)
@@ -176,11 +192,12 @@ v_asig_antiguedad :=
     END;
     COMMIT;
 
--- b. Valor de asignación carga familiar
+-- b. Valor de asignación por carga familiar
 v_n_cargas_familiares := i.cuenta;
 v_id_vendedor  := i.id;
+
 --dbms_output.put_line('el vendedor '||v_id_vendedor||' tiene '||v_n_cargas_familiares|| ' CARGAS Familiares ');    
-    
+    -- se multiplica la cantidad de cargas por el valor de bono por carga
     v_asig_cargas := ROUND(v_n_cargas_familiares * :b_carga_familiar);
       
       
@@ -189,21 +206,19 @@ v_comisiones := i.comision;
 --dbms_output.put_line('la comision del empleado ' || v_id_vendedor||' es de '|| v_comisiones);      
 
 -- d. Calculando el bono por categoria de vendedor
-
-  v_bono_categ := ROUND(v_total_ventas_mes * (v_porcentaje/100));
+ v_total_ventas_mes := i.total_v_mes;
+ v_id_cat := i.id_categoria;
   
+    IF    v_id_cat = 'A'  THEN v_bono_categ := ROUND(v_total_ventas_mes * :b_bono_cat_A /100);
+    ELSIF v_id_cat = 'B'  THEN v_bono_categ := ROUND(v_total_ventas_mes * :b_bono_cat_B /100);
+    ELSIF v_id_cat = 'C'  THEN v_bono_categ := ROUND(v_total_ventas_mes * :b_bono_cat_C /100);
+    ELSE v_bono_categ := ROUND(:b_bono_sin_cat/100);
+    END IF;
   
-  
--- dbms_output.put_line(v_id_vendedor ||' '||v_id_cat||' '||'tiene un '||v_porcentaje||' de bono');      
-
--- dbms_output.put_line(' el total de ventas ' || v_total_ventas_mes ||' ' ||v_id_vendedor ||' '||v_id_cat||' '||'tiene un '||v_porcentaje||' de bono, equivalente a '||v_bono_categ);      
+-- dbms_output.put_line('EL VENDEDOR '||v_id_vendedor ||' CATEGORIA '||v_id_cat||' '||'tiene un BONO DE '||v_bono_categ);      
 
 -- e. calculo de asignación especial por grupo al que pertenecen los vendedores (id_grupo) 
-    
--- v_id_grupo_vr    
--- :b_bono_grupos_A
--- v_bono_grupos
-     
+   v_id_grupo_vr:= i.id_grupo;  
 
     IF v_id_grupo_vr like 'A%' AND v_total_ventas_mes > 5500000 THEN v_bono_grupos := ROUND(v_sueldo_base * :b_bono_grupos_A);
     ELSIF v_id_grupo_vr like 'B%' AND v_total_ventas_mes > 5500000 THEN v_bono_grupos :=  ROUND(v_sueldo_base * :b_bono_grupos_B);
@@ -213,24 +228,23 @@ v_comisiones := i.comision;
     ELSE v_bono_grupos := 0;
     END IF;
     
---   -- dbms_output.put_line(v_bono_grupos); 
+-- dbms_output.put_line(v_bono_grupos); 
 
   -- f. descuentos vendedor (columna descuentos habermesvendedor)  
   
   v_descuentos := i.monto_anticipo;
   v_ant_mes := i.ant_mes;
-
- -- dbms_output.put_line(v_descuentos||' '||v_ant_mes); 
- -- g. TOTAL HABERES 
+ dbms_output.put_line('se descuentan '||v_descuentos||' del vendedor ' ||v_id_vendedor ||' en el mes '||v_ant_mes); 
  
+ -- g.Se calculan todos los bonos y descuentos para la columna (TOTAL HABERES) 
  v_total_haberes := v_sueldo_base + v_asig_antiguedad + v_asig_cargas + v_comisiones+ v_bono_categ + v_bono_grupos - v_descuentos; 
 
 -- h. Descuentos por AFP Y SALUD
---v_desc_afp ;
---v_desc_salud ;
 
 v_valor_afp := ROUND(v_total_haberes * (v_porc_desc_afp/100));
 v_valor_salud := ROUND( v_total_haberes * (v_porc_desc_salud/100));
+
+-- Insersión de datos en tablas descuento_mes_vendedor y haber_mes_vendedor
 
 INSERT INTO descuento_mes_vendedor VALUES (
 v_id_vendedor,
@@ -255,17 +269,6 @@ v_bono_grupos,
 v_descuentos,
 v_total_haberes);
 
-
 END LOOP;
 end;
 /
-/*
-SELECT COUNT(*),id_vendedor FROM carga_familiar
-GROUP BY id_vendedor;
-*/
--- truncate table haber_mes_vendedor;
--- truncate table descuento_mes_vendedor;
-/*
-SELECT * FROM AFP;
-SELECT * FROM SALUD;
-*/

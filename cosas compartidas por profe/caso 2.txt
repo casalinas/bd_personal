@@ -1,0 +1,86 @@
+declare
+    b_tramo1_desde number(7);
+    b_tramo1_hasta number(7);
+    b_tramo2_desde number(7);
+    b_tramo2_hasta number(7);
+    b_tramo3_desde number(7);
+    
+    v_tramo1_desde number(7);
+    v_tramo1_hasta number(7);
+    v_tramo2_desde number(7);
+    v_tramo2_hasta number(7);
+    v_tramo3_desde number(7);
+    
+    v_min_nro_cliente number(5);
+    v_max_nro_cliente number(5);
+    
+    v_factor number(5,2);
+    v_base number(7);
+    type varray_typ is varray(4) of number(5);
+    varray_pesos varray_typ;
+    
+    v_pesos number(5);
+    v_cont number(2);
+    
+    type reg_todosuma is record
+    (
+        nro_cliente number(5),
+        run_cliente varchar2(15),
+        nombre_cliente varchar2(50),
+        tipo_cliente varchar2(30),
+        monto_solic_creditos number(10),
+        monto_pesos_todosuma number(8)
+        );
+        r_todosuma reg_todosuma;
+
+begin
+    varray_pesos := varray_typ(1200,300,550,700);
+    vcont := varray_pesos.count();
+    
+    delete cliente_todosuma;
+    
+    select min(nro_cliente), max(nro_cliente) into v_min_nro_cliente, v_max_nro_cliente from cliente;
+    
+    v_tramo1_desde:=&b_tramo1_desde;
+    v_tramo1_hasta:=&b_tramo1-hasta;
+    v_tramo2_desde:=&b_tramo2_desde;
+    v_tramo2_hasta:=&b_tramo2_hasta;
+    v_tramo3_desde:=&b_tramo3_desde;
+    
+    while v_max_nro_cliente >= v_min_nro_cliente loop
+        select cli.nro_cliente,
+        to_char(cli.numrun)|| '-' || cli.dvrun as run_cliente,
+        cli.pnombre || ' ' || cli.snombre || ' ' || cli.appaterno || ' ' || cli.apmaterno as nombre_cliente, tc.nombre_tipo_cliente,
+        (select sum(monto_credito) from credito_cliente where nro_cliente = cli.nro_cliente) as monto_credito
+    --        (select sum(monto_credito) From credito_cliente where nro_cliente = cli.nro_cliente and extract(yeard from fecha_otorga_cred) = extract(yeard from sysdate)-1) as monto_credito
+      
+      into r_todosuma.nro_cliente, r_todosuma.run_cliente = r_todosuma.nombre_cliente, r_todosuma.tipo_cliente, r_todosuma.monto_solic_creditos
+      
+      from cliente cli
+      join tipo_cliente tc on tc.cod_tipo_cliente = cli.cod_tipo_cliente
+      where cli.nro_cliente = v_min_nro_cliente;
+      
+    v_factor := round(r_todosuma.monto_solic_creditos / 100000);
+    v_base := varray_pesos(1) * v_factor;
+    
+    r_todosuma.monto_pesos_todosuma :=
+    case
+    when r_todosuma.monto_solic_creditos between v_tramo1_desde and v_tramo1_hasta then varray_pesos(2) * v_factor
+    when r_todosuma.monto_solic_creditos between v_tramo2_desde and v_tramo2_hasta then varray_pesos(3) * v_factor
+    when r_todosuma.monto_solic_creditos >= v_tramo3_desde then varray_pesos(4) * v_factor
+    else 0
+    end;
+    
+    insert into cliente_todosuma 
+    values (r_todosuma.nro_cliente, r_todosuma.run_cliente , r_todosumo.nombre_cliente , r_todosuma.tipo_cliente, r_todosuma.monto_solic_creditos, r_todosuma.monto_pesos_todosuma);
+    v_min_nro_cliente := v_min_nro_cliente + 1;
+    end loop;
+    commit;
+end;
+    
+    
+begin
+
+
+end;
+    

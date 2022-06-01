@@ -1,0 +1,119 @@
+DECLARE
+        V_TEMP_BLOB BLOB;
+        V_BFILE BFILE;
+        V_FOTO VARCHAR2(20);
+
+BEGIN
+
+    FOR X IN (SELECT ID_PLATO FROM PLATO) LOOP
+    
+        BEGIN -EXCEPTION---------------------------------
+           
+            SELECT FOTO INTO V_TEMP_BLOB
+            FROM PLATO
+            WHERE ID_PLATO=X.ID_PLATO
+            FOR UPDATE;
+            
+            V_FOTO:= X.ID_PLATO||'.JPG';
+            
+            V_BFILE:= BFILENAME('OBJETOS_LOB',V_FOTO);
+            
+            dbms_lob.open(V_BFILE,DBMS_LOB.LOB_READONLY);
+            
+            dbms_lob.loadfromfile(V_TEMP_BLOB,V_BFILE,DBMS_LOB.getlength(V_BFILE));
+            
+            dbms_lob.close(V_BFILE);
+            
+            COMMIT;
+            
+            EXCEPTION
+            WHEN OTHERS THEN 
+            DBMS_OUTPUT.PUT_LINE('NO TIENE FOTO');
+        
+        END;--------------------------------------
+    
+    END LOOP;
+
+END
+
+
+
+------------------------------------------------
+
+/* practica5_caso2*/
+declare
+    b_tramo1_desde number(7); b_tramo1_hasta number(7);
+    b_tramo2_desde number(7); b_tramo2_hasta number(7);
+    b_tramo3_desde number(7);
+    
+    v_tramo1_desde number(7);  v_tramo1_hasta number(7);
+    v_tramo2_desde number(7);  v_tramo2_hasta number(7);
+    v_tramo3_desde number(7);
+    
+    v_factor number(5,2); v_base number(7);
+    
+    type varray_typ is varray(4) of number(5);
+    varray_pesos varray_typ;
+    
+    v_pesos number(5);
+    v_cont number(2);
+    
+    type reg_todosuma is record
+    (
+    nro_cliente number(5),
+    run_cliente varchar2(15),
+    nombre_cliente varchar2(60),
+    tipo_cliente varchar2(30),
+    monto_solic_creditos number(10)
+    );
+    
+    r_todosuma reg_todosuma;
+    
+    
+    CURSOR cur is (
+    select 
+    cli.nro_cliente nro_cliente,
+    cli.numrun run_cliente,
+    cli.pnombre||' '||cli.snombre||' '||cli.appaterno||' '||cli.apmaterno nombre_cliente,
+    tc.nombre_tipo_cliente tipo_cliente,
+    cc.monto_solicitado monto_solic_creditos
+    from cliente cli
+    INNER JOIN tipo_cliente tc on (tc.cod_tipo_cliente = cli.cod_tipo_cliente)
+    INNER JOIN CREDITO_CLIENTE cc on (cc.nro_cliente = cli.nro_cliente));
+begin
+    OPEN CUR;
+
+    varray_pesos := varray_typ(1200,300,550,700);
+    v_cont := varray_pesos.COUNT();
+    
+    delete cliente_todosuma;
+    
+    v_tramo1_desde:=1000001;
+    v_tramo1_hasta:=3000000;
+    v_tramo2_desde:=3000001;
+    v_tramo2_hasta:=6000000;
+    v_tramo3_desde:=6000001;
+    
+    
+    FETCH CUR INTO r_todosuma;
+  
+    
+   
+    /*
+    for i in (
+    select cli.nro_cliente as id_cliente,
+    cli.numrun||' '||cli.dv_run as run_cliente,
+    cli.pnombre||' '||cli.snombre||' '||cli.appaterno||' '||cli.apmaterno as nombre_cliente,
+    tc.nombre_tipo_cliente,
+    cc.monto_solicitado
+
+    from cliente cli 
+    JOIN TIPO_CLIENTE tc on (tc.cod_tipo_cliente = cli.cod_tipo_cliente)
+    JOIN credito_cliente cc ON (cli.nro_cliente = cc.nro_cliente)
+    )
+ */
+    DBMS_OUTPUT.PUT_LINE(r_todosuma.NRO_CLIENTE||' '||r_todosuma.RUN_CLIENTE||' '||r_todosuma.nombre_cliente||' '||r_todosuma.tipo_cliente);
+    
+    end;
+     
+     

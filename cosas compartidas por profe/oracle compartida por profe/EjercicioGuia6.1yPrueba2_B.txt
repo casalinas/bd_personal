@@ -1,0 +1,256 @@
+--p6.1
+DECLARE
+  v_fecha number(4) := 2020;
+  -- cursor que recupera los datos de clientes que pagaron fuera de plazo
+  CURSOR cur_pagomoroso IS
+    SELECT p.pac_run, p.dv_run, p.pnombre || ' ' || p.snombre || ' ' || p.apaterno || ' ' || p.amaterno as nombre, p.fecha_nacimiento,
+    trunc((sysdate - p.fecha_nacimiento)/365) as Edad,
+    (SELECT porcentaje_descto FROM porc_descto_3ra_edad WHERE anno_ini <= trunc((sysdate - p.fecha_nacimiento)/365) AND anno_ter >= trunc((sysdate - p.fecha_nacimiento)/365)) as dscto,
+    at.ate_id, pa.fecha_venc_pago, pa.fecha_pago, (pa.fecha_pago - pa.fecha_venc_pago) as dias_atraso, 
+    es.esp_id, es.nombre as Especialidad
+    FROM paciente p
+    JOIN atencion at on at.pac_run = p.pac_run
+    JOIN pago_atencion pa on pa.ate_id = at.ate_id
+    JOIN especialidad es on es.esp_id = at.esp_id
+    WHERE (pa.fecha_pago - pa.fecha_venc_pago) > 0 and extract(year from pa.fecha_venc_pago) = 2020
+    ORDER BY pa.fecha_venc_pago, p.apaterno;
+    
+  -- variables escalares
+  v_monto_multa_dia number(6);
+  v_dias_atraso number(3);
+  v_multa_dia number(4);
+  v_edad_pac number(3);
+  v_pje_desc_adulto number(4);
+  v_monto_multa number(6);
+  v_anno_proceso number(4);
+
+  TYPE t_cursor IS RECORD
+    (pac_run number(8),
+    pac_dv_run varchar2(1),
+    pac_nombre varchar2(50),
+    pac_fecha_nacimiento date,
+    edad number(3),
+    dscto number(4),
+    ate_id number(3),
+    fecha_venc_pago date,
+    fecha_pago date,
+    dias_atraso number(4),
+    especialidad_id number(4),
+    especialidad_atencion varchar2(30));    
+  r_cursor t_cursor;
+
+  -- varray
+  TYPE t_multaxdia IS VARRAY(8) OF number;
+  v_multaxdia t_multaxdia := t_multaxdia(1100,1200,1300,1700,1900,2000,2300);
+
+BEGIN
+  -- truncamos la tabla pago_moroso
+  EXECUTE IMMEDIATE 'TRUNCATE TABLE pago_moroso';
+  
+  OPEN cur_pagomoroso;
+  FETCH cur_pagomoroso INTO r_cursor;
+  WHILE cur_pagomoroso%FOUND
+  LOOP
+
+    --calcula dias atraso
+--    v_dias_atraso := (r_cursor.fecha_pago - r_cursor.fecha_venc_pago);
+
+    --obtiene monto multa dia segun tipo atencion  
+    v_multa_dia := CASE
+    WHEN r_cursor.ate_id = 700 THEN v_multaxdia(1)
+    WHEN r_cursor.ate_id = 100 OR r_cursor.ate_id = 300 THEN v_multaxdia(2)
+    WHEN r_cursor.ate_id = 200 THEN v_multaxdia(3)
+    WHEN r_cursor.ate_id = 400 OR r_cursor.ate_id = 900 THEN v_multaxdia(4)
+    WHEN r_cursor.ate_id = 500 OR r_cursor.ate_id = 600 THEN v_multaxdia(5)
+    WHEN r_cursor.ate_id = 1100 THEN v_multaxdia(6)
+    WHEN r_cursor.ate_id = 1400 OR r_cursor.ate_id = 1800 THEN v_multaxdia(7)
+    ELSE 0
+    END;
+
+    --calcula monto multa
+    v_monto_multa_dia := v_multa_dia * r_cursor.dias_atraso;
+
+    --calcula edad paciente
+--    v_edad_pac :=  trunc((sysdate - r_cursor.pac_fecha_nacimiento)/365);
+
+    --obtiene descto segun edad
+--    BEGIN
+--      SELECT porcentaje_descto INTO v_pje_desc_adulto FROM porc_descto_3ra_edad WHERE v_edad_pac >= anno_ini AND v_edad_pac <= anno_ter;
+--    END;
+
+    --calcula monto multa
+    v_monto_multa := v_monto_multa_dia - (v_monto_multa_dia * r_cursor.dscto / 100);
+
+    --insertamos en tabla pago_moroso
+    INSERT INTO pago_moroso
+    VALUES (r_cursor.pac_run, r_cursor.pac_dv_run, r_cursor.pac_nombre, r_cursor.ate_id, r_cursor.fecha_venc_pago, r_cursor.fecha_pago, r_cursor.dias_atraso, r_cursor.especialidad_atencion, v_monto_multa);
+
+    --lee nueva tupla de cursor  
+    FETCH cur_pagomoroso INTO r_cursor;
+  END LOOP;
+  --cerramos cursor
+  CLOSE cur_pagomoroso;
+  --confirmamos cambios
+  COMMIT;
+END;
+
+--select * from pago_moroso;
+
+
+--eval.B.2
+VARIABLE b_fecha VARCHAR2(6);
+EXEC :b_fecha := '052021';
+VARIABLE b_impuestolimite NUMBER;
+EXEC :b_impuestolimite := 90000;
+DECLARE
+  -- Cursor que recupera las lineas de producto
+  CURSOR c_linea IS 
+  SELECT nom_linea
+  FROM linea
+  ORDER BY nom_linea;
+  
+  -- cursor que recupera las ventas de productos de una linea determinada en un dia especifico
+  -- en el periodo de tiempo (mes) especificado
+  CURSOR c_ven (p_linea VARCHAR2) IS
+  SELECT v.fec_venta, COUNT(*) pedidos,
+         NVL(SUM(p.precio * dv.cantidad),0) total 
+  FROM venta v JOIN detalle_venta dv ON v.id_venta = dv.id_venta
+  JOIN producto p ON p.id_producto = dv.id_producto
+  JOIN linea l ON l.id_linea = p.id_linea
+  WHERE TO_CHAR(v.fec_venta, 'MMYYYY') = :b_fecha
+  AND l.nom_linea = p_linea
+  GROUP BY v.fec_venta
+  ORDER BY v.fec_venta;
+  
+  -- Declaracion de variables escalares
+  v_pct NUMBER;
+  v_pctcomis NUMBER;
+  v_msg VARCHAR2(300);
+  v_msgusr VARCHAR2(300);
+  
+  v_impuestos NUMBER := 0;
+  v_desctos_linea NUMBER:= 0;
+  v_monto_comisiones  NUMBER := 0;  
+  v_monto_delivery  NUMBER := 0;  
+  v_monto_descuentos  NUMBER := 0;  
+  v_monto_ventas NUMBER := 0;
+
+  -- Acumuladores
+  v_tot_numventas NUMBER := 0;
+  v_tot_monto_ventas NUMBER := 0;
+  v_tot_impuestos NUMBER := 0;
+  v_tot_desctos_linea NUMBER:= 0;
+  v_tot_comisiones  NUMBER := 0;  
+  v_tot_delivery  NUMBER := 0;  
+  v_tot_descuentos  NUMBER := 0;  
+  v_tot_ventas NUMBER := 0;
+
+  -- varray
+  TYPE t_descuentos IS VARRAY(6) OF NUMBER;
+  v_desctos t_descuentos := t_descuentos(0.19,0.17,0.15,0.13,0.11,1500);
+  
+  -- Excepcion para el error de usuario
+  e_impuesto_limite EXCEPTION;
+BEGIN
+  -- borrado de los datos en las tablas
+  EXECUTE IMMEDIATE 'TRUNCATE TABLE error_proceso';
+  EXECUTE IMMEDIATE 'TRUNCATE TABLE resumen_linea';
+  EXECUTE IMMEDIATE 'DROP SEQUENCE seq_error';
+  EXECUTE IMMEDIATE 'CREATE SEQUENCE seq_error';
+  
+  -- bucle de cursor que recorre las lineas de producto
+  FOR r_linea IN c_linea LOOP
+
+     -- Ponemos a cero los acumuladores
+     v_tot_numventas := 0;
+     v_tot_monto_ventas := 0;
+     v_tot_impuestos := 0;
+     v_tot_desctos_linea := 0;
+     v_tot_comisiones := 0;  
+     v_tot_delivery := 0;  
+     v_tot_descuentos := 0;  
+     v_tot_ventas := 0;
+     
+     -- Bucle que recorre las ventas diarias del mes que corresponden a una linea determinada 
+     FOR r_ven IN c_ven (r_linea.nom_linea) LOOP
+       
+         -- Recupera porcentaje de impuesto que pagan las ventas desde la tabla impuesto
+         BEGIN
+             SELECT pctimpuesto / 100
+             INTO v_pct
+             FROM impuesto
+             WHERE r_ven.total BETWEEN mto_venta_inf AND mto_venta_sup;
+         EXCEPTION
+             WHEN NO_DATA_FOUND THEN
+                v_msg  := SQLERRM;
+                v_pct := 0; 
+                v_msgusr := 'No se encontro porcentaje de impuesto para el monto de los pedidos del dia ' || TO_CHAR(r_ven.fec_venta, 'dd/mm/yyyy');
+                INSERT INTO error_proceso
+                VALUES (seq_error.NEXTVAL, v_msg, v_msgusr);
+             WHEN TOO_MANY_ROWS THEN    
+                v_msg  := SQLERRM;
+                v_pct := 0; 
+                v_msgusr := 'Se encontro mas de un porcentaje de impuesto para el monto de los pedidos del dia ' || TO_CHAR(r_ven.fec_venta, 'dd/mm/yyyy');
+                INSERT INTO error_proceso
+                VALUES (seq_error.NEXTVAL, v_msg, v_msgusr);
+         END;
+         -- Calcula los impuestos de acuerdo con % recuperado 
+         v_impuestos := ROUND(r_ven.total * v_pct);
+        
+         -- Determina los descuentos por linea usando los porcentajes disponibles mediante el varray
+         v_desctos_linea := CASE INITCAP(r_linea.nom_linea)
+                  WHEN 'Reserva Especial' THEN ROUND(r_ven.total * (v_desctos(1))) 
+                  WHEN 'Reserva' THEN ROUND(r_ven.total * (v_desctos(2))) 
+                  WHEN 'Gran Reserva' THEN ROUND(r_ven.total * (v_desctos(3))) 
+                  WHEN 'Selección' THEN ROUND(r_ven.total * (v_desctos(4))) 
+                  ELSE ROUND(r_ven.total * (v_desctos(5))) 
+                END;
+     
+         -- Creamos el escenario para interceptar el error de usuario
+         -- el monto de los impuestos calculados no puede exceder de los $90.000 
+         BEGIN
+            IF v_impuestos > :b_impuestolimite THEN
+               -- levantamos la excepcion
+               RAISE e_impuesto_limite; 
+            END IF;
+         EXCEPTION
+            WHEN e_impuesto_limite THEN
+                v_msg := 'ORA-20001 Monto de impuesto sobrepasa el limite permitido';
+                INSERT INTO error_proceso
+                VALUES (seq_error.NEXTVAL, v_msg,
+                       'Se reemplaza el monto de impuesto calculada de '
+                       || TO_CHAR(v_impuestos, '$999G999') || ' por el monto limite de $'
+                       || TO_CHAR(:b_impuestolimite, '$99G999'));
+                v_impuestos := :b_impuestolimite;                     
+           END;
+
+        -- Determina el monto diario que se gasta en delivery
+        v_monto_delivery := v_desctos(6) * r_ven.pedidos;  
+
+        -- Determina el monto total de los descuentos
+        v_monto_descuentos := v_impuestos + v_desctos_linea + v_monto_delivery;  
+
+        -- Determina el monto final de la venta diaria
+        v_monto_ventas := r_ven.total - v_monto_descuentos;
+                     
+         -- Acumula en las variables sumadoras
+         v_tot_numventas := v_tot_numventas  + r_ven.pedidos;
+         v_tot_monto_ventas := v_tot_monto_ventas  + r_ven.total;
+         v_tot_impuestos := v_tot_impuestos  + v_impuestos;
+         v_tot_desctos_linea := v_tot_desctos_linea  + v_desctos_linea;
+         v_tot_comisiones := v_tot_comisiones  + v_monto_comisiones;
+         v_tot_delivery := v_tot_delivery  + v_monto_delivery;
+         v_tot_descuentos := v_tot_descuentos  + v_monto_descuentos;
+         v_tot_ventas := v_tot_ventas  + v_monto_ventas;
+         
+     END LOOP;
+     --   Inserta en la tabla de resumen
+     INSERT INTO resumen_linea
+     VALUES (r_linea.nom_linea, v_tot_numventas, v_tot_monto_ventas,v_tot_impuestos, v_tot_desctos_linea,
+              v_tot_delivery, v_tot_descuentos, v_tot_ventas);
+  END LOOP;
+  -- Confirma los cmabios 
+  COMMIT;
+END;
+/
+

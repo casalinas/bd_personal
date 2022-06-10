@@ -1,0 +1,21 @@
+--funcion que retorna un true o false
+
+CREATE OR REPLACE FUNCTION FN_OBTENER_EDAD RETURN BOOLEAN IS
+    V_EDAD NUMBER := 18;
+BEGIN
+    
+    IF V_EDAD >= 18 THEN
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END IF;   
+    
+END;
+
+
+BEGIN
+     
+    IF FN_OBTENER_EDAD() = TRUE THEN
+        DBMS_OUTPUT.PUT_LINE('ES MAYOR DE EDAD ');
+    END IF;
+END;

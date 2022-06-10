@@ -1,0 +1,33 @@
+--======================================================================================================
+--EJERCICIO 1
+--======================================================================================================
+CREATE OR REPLACE PROCEDURE total_ventas IS 
+CURSOR DATOS IS (SELECT E.RUT_EMPLEADO  , COUNT(F.NRO_FACTURA) AS TOTAL_VENTA , NVL(SUM(F.MONTO_TOTAL),0) AS MONTO_TOTAL_VENTAS FROM EMPLEADO E
+                 FULL JOIN Factura F ON F.Rut_Empleado = E.Rut_Empleado group by E.RUT_EMPLEADO );
+
+BEGIN
+
+  FOR I IN DATOS LOOP
+    BEGIN
+    
+    INSERT INTO VENTA_EMPLEADO VALUES(I.RUT_EMPLEADO, I.TOTAL_VENTA, I.MONTO_TOTAL_VENTAS );
+    
+    EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+      Dbms_Output.Put_Line('ERROR AL INSERTAR, NO SE ENCONTRARON DATOS');
+    WHEN VALUE_ERROR THEN
+      Dbms_Output.Put_Line('ERROR AL INSERTAR, VALOR FUERA DEL RANGO');
+    WHEN DUP_VAL_ON_INDEX THEN
+      Dbms_Output.Put_Line('ERROR AL INSERTAR, CLAVE PRIMARIA DUPLICADA');
+    WHEN OTHERS THEN
+      Dbms_Output.Put_Line('ERROR GENERICO AL INSERTAR DATOS');
+    END;
+  END LOOP;
+
+END;
+
+
+--======================================================================================================
+--EJECUTAR EL PROCEDIMIENTO PARA QUE SE HAGA LA INSERCIÓN.
+--======================================================================================================
+--EXEC total_ventas();

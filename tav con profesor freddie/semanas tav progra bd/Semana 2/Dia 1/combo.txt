@@ -1,0 +1,72 @@
+alter session set "_oracle_script"=true;
+create user UNIDAD21 identified by 12345 account unlock;
+grant resource, connect, DBA to UNIDAD21; 
+ALTER USER "UNIDAD21" QUOTA UNLIMITED ON "SYSTEM";
+ALTER USER "UNIDAD21" QUOTA UNLIMITED ON "SYSAUX";
+ALTER USER "UNIDAD21" QUOTA UNLIMITED ON "USERS";
+
+-------------------------------------------------------
+---- EJEMPLO DE CARGA DE IMAGEN SOBRE UNA TABLA
+CREATE TABLE VACACIONES2022(
+    COD NUMBER PRIMARY KEY,
+    DESCRIPCION VARCHAR2(80),
+    FOTO BLOB DEFAULT EMPTY_BLOB()
+);
+
+SELECT * FROM vacaciones2022;
+
+-- CRE CREA Y OTORGAN PRIVILEGIOS SIENDO USUARIO "SYSTEM"
+
+-- CREAR UN DIRECTORIO (REFERENCIA)
+CREATE OR REPLACE DIRECTORY OBJ_IMAGENES AS 'c:\IMAGENES\';
+-- DAR ALGUNOS PERMISOS PARA OCUPAR EL DIRECTORIO
+GRANT READ,WRITE ON DIRECTORY OBJ_IMAGENES TO UNIDAD21;
+
+
+-- CREAR PROCEDIMIENTO ALMACENADO PARA INSERTAR IMAGEN
+DECLARE
+    V_BLOB BLOB; --> CARGAR LA IMAGEN
+    V_BFILE BFILE; --> DONDE ESTA LA IMAGEN (VINCULO)
+    V_FOTO VARCHAR2(80); --> COMO SE LLAMA
+BEGIN
+    INSERT INTO vacaciones2022 VALUES(1,'Cartagena',empty_blob())
+    RETURNING foto into v_blob;
+    
+    v_foto:='CARTAGENA.jpg';
+    
+    v_bfile:=bfilename('OBJ_IMAGENES',V_FOTO);--> CREANDO EL VINCULO
+    DBMS_LOB.OPEN(V_BFILE, DBMS_LOB.LOB_READONLY);
+    DBMS_LOB.LOADFROMFILE(V_BLOB, V_BFILE, dbms_lob.getlength(V_BFILE));
+    DBMS_LOB.CLOSE(V_BFILE);   
+END;
+SELECT * FROM vacaciones2022;
+---------------------------------------------------
+-- CARGA MASIVA DE IMAGENES
+
+INSERT INTO vacaciones2022 VALUES(2,'Nueva Cartagena',empty_blob());
+INSERT INTO vacaciones2022 VALUES(3,'Chiloe',empty_blob());
+INSERT INTO vacaciones2022 VALUES(4,'El Tabo',empty_blob());
+INSERT INTO vacaciones2022 VALUES(5,'Neuen',empty_blob());
+INSERT INTO vacaciones2022 VALUES(6,'Serena',empty_blob());
+INSERT INTO vacaciones2022 VALUES(7,'Coquimbo',empty_blob());
+
+select * from vacaciones2022;
+
+DECLARE
+    V_BLOB BLOB;
+    V_BFILE BFILE;
+    V_FOTO VARCHAR2(80);
+BEGIN
+    FOR X IN (SELECT * FROM vacaciones2022)
+    LOOP
+        V_FOTO:= x.cod || '.jpg';
+        select foto into v_blob
+        from vacaciones2022 where cod= x.cod for update;
+        
+        v_bfile:=bfilename('OBJ_IMAGENES',V_FOTO);
+        DBMS_LOB.OPEN(V_BFILE, DBMS_LOB.LOB_READONLY);
+        DBMS_LOB.LOADFROMFILE( V_BLOB, V_BFILE, dbms_lob.getlength( V_BFILE));
+        DBMS_LOB.CLOSE(V_BFILE);
+    END LOOP;
+END;
+SELECT * FROM vacaciones2022;

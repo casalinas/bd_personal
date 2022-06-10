@@ -1,0 +1,74 @@
+--1)
+set SERVEROUTPUT ON;
+declare
+    v_max number;
+    v_rut vendedor.rutvendedor%type;
+    v_comision number;
+    v_nombre vendedor.nombre%type;
+begin
+    SELECT max(sum(b.total)) into v_max FROM vendedor V 
+    INNER JOIN boleta B on v.rutvendedor=b.rutvendedor
+    GROUP BY b.rutvendedor;
+    dbms_output.put_line('Maximo:' || v_max);
+    v_comision:= (round((v_max / 100000),0))/100; --> $700.000 (7%) $429.590 (4,3%) 0.043
+    dbms_output.put_line('Comision:' || v_comision);
+    SELECT v.rutvendedor,v.nombre into v_rut,v_nombre FROM vendedor V 
+    INNER JOIN boleta B on v.rutvendedor=b.rutvendedor 
+    group by v.rutvendedor, v.nombre
+    having sum(b.total)=v_max;
+    dbms_output.put_line('Rut Vendedor:' || v_rut || ' Nombre:' || v_nombre);
+    
+    update vendedor set comision=comision+v_comision
+    where rutvendedor=v_rut;
+    
+    insert into audit_proceso 
+    values(sysdate,'VENDEDOR ' || V_NOMBRE || ' AUMENTO PORCENTAJE COMISION VENTA CON BOLETA', V_COMISION);
+    ---- REALIZAR CON FACTURA
+    
+end;
+
+select * from vendedor where rutvendedor='12456778-1';
+SELECT * FROM AUDIT_PROCESO;
+ROLLBACK;
+--------------------------------------------------------------------------------
+DECLARE
+    CURSOR CUR_PROMO IS SELECT * FROM promocion FOR UPDATE;
+    REG_PROMO CUR_PROMO%ROWTYPE;
+    V_CONTADOR NUMBER:=0;
+BEGIN
+    OPEN CUR_PROMO;
+    LOOP
+        FETCH CUR_PROMO INTO REG_PROMO;
+        EXIT WHEN CUR_PROMO%NOTFOUND;
+        UPDATE promocion SET porc_dscto_prod=porc_dscto_producto/2
+        where current of CUR_PROMO;
+        V_CONTADOR:=V_CONTADOR+1;
+    END LOOP;
+    CLOSE CUR_PROMO;
+    INSERT INTO AUDIT_PROCESO
+    VALUES(SYSDATE,'SE ACTUALIZARON ' || V_CONTADOR || ' PROMOCIONES AJUSTANDO DESCUENTO A 50%',50); 
+END;
+--- B
+DECLARE
+    V_CANTIDAD NUMBER:=0;
+BEGIN   
+    UPDATE promocion SET porc_dscto_prod=porc_dscto_prod/2;
+    V_CANTIDAD:=SQL%ROWCOUNT ;
+    INSERT INTO AUDIT_PROCESO
+    VALUES(SYSDATE,'SE ACTUALIZARON ' || V_CANTIDAD || ' PROMOCIONES AJUSTANDO DESCUENTO A 50%',50);
+END;
+SELECT * FROM promocion;
+SELECT * FROM AUDIT_PROCESO;
+---------------------------------------------------------------
+DECLARE
+    V_CANTIDAD NUMBER:=0;
+BEGIN
+    UPDATE promocion SET fecha_desde=SYSDATE,fecha_hasta=ADD_MONTHS(SYSDATE,3);
+    V_CANTIDAD:=SQL%ROWCOUNT;
+    INSERT INTO AUDIT_PROCESO
+    VALUES(SYSDATE,'SE ACTUALIZARON ' || V_CANTIDAD 
+                || ' PROMOCIONES DESDE FECHA ' || SYSDATE 
+                || ' FECHA HASTA ' || ADD_MONTHS(SYSDATE,3),3);
+END;
+
+SELECT AVG(porc_dscto_prod) INTO V_PORC FROM promocion;

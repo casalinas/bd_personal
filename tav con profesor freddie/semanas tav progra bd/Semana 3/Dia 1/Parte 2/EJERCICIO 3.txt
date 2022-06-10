@@ -1,0 +1,58 @@
+--======================================================================================================================
+-- EJERCICIO 3
+--======================================================================================================================
+
+CREATE OR REPLACE PROCEDURE CALCULO_BONIFICACION (MES IN NUMBER, ANNIO IN NUMBER, CANT_EMP_PROCESADOS OUT NUMBER) IS
+
+CURSOR DATOS IS (SELECT  E.RUT_EMPLEADO, E.Sueldo_Base,TO_CHAR(F.Fecha_Factura,'MM') AS MES_PAGO,TO_CHAR(F.Fecha_Factura,'YYYY') AS ANNO_PAGO,   SUM(F.Monto_Total) AS MONTO_TOTAL 
+                 FROM EMPLEADO E full outer JOIN FACTURA F ON F.Rut_Empleado = E.Rut_Empleado 
+                 WHERE TO_CHAR(F.Fecha_Factura,'MM') = 05 AND TO_CHAR(F.Fecha_Factura,'YY') = 14 group by E.RUT_EMPLEADO, E.Sueldo_Base, TO_CHAR(F.Fecha_Factura,'MM'), TO_CHAR(F.Fecha_Factura,'YYYY')  );
+                 
+CURSOR PORCENTAJE IS (SELECT TOTAL_VENTA_INF,TOTAL_VENTA_SUP, PORC_COMISION  FROM PORCENTAJE_COMISION);
+MENSAJE VARCHAR2(200);
+CONTADOR_EMP NUMBER(2):=0;
+COMISION  NUMBER (8,0):=0;
+COLACION NUMBER(8,0):=0;
+
+BEGIN
+  FOR I IN DATOS LOOP
+   BEGIN
+   
+    FOR X IN PORCENTAJE LOOP
+    
+        IF I.MONTO_TOTAL > 0 THEN
+           --COMPARO MI MONTO CONTRA LOS 4 TRAMOS
+           IF I.MONTO_TOTAL BETWEEN X.TOTAL_VENTA_INF AND X.TOTAL_VENTA_SUP THEN
+              COMISION := ROUND(X.PORC_COMISION * I.MONTO_TOTAL); --CUANDO ENCUENTRO EL TRAMO, RECUPERO EL PORCENTAJE DE COMMISION
+           END IF;          
+        ELSE 
+          COMISION :=0; 
+        END IF;     
+    END LOOP;
+    
+    COLACION := ROUND((I.SUELDO_BASE + COMISION) * 0.085);
+        
+    INSERT INTO BONIFICACIONES VALUES (I.RUT_EMPLEADO, I.MES_PAGO, I.ANNO_PAGO, COMISION, COLACION);
+    
+    EXCEPTION
+    WHEN OTHERS THEN
+      MENSAJE := SQLERRM;
+      INSERT INTO ERRORES_PROCESOS_DUMBO VALUES(SEQ_ERROR.NEXTVAL,'CALCULO_BONIFICACION', MENSAJE );
+    END;
+  
+  CONTADOR_EMP := CONTADOR_EMP + 1;   
+  END LOOP;
+  CANT_EMP_PROCESADOS  := CONTADOR_EMP; --ENVIAMOS COMO DATO DE SALIDA EL CONTADOR DE EMPLEADOS
+END;
+
+
+--======================================================================================================================
+-- SE CREA UN BLOQUE ANONIMO PARA LLAMAR AL PROCEDIMIENTO
+--======================================================================================================================
+
+DECLARE
+EMPLEADOS_PROCESADOS NUMBER(10):=0;
+BEGIN
+  CALCULO_BONIFICACION(05 , 2014 , EMPLEADOS_PROCESADOS);
+  DBMS_OUTPUT.PUT_LINE('TOTAL DE EMPLEADOS PROCESADOS : ' || EMPLEADOS_PROCESADOS);
+END;

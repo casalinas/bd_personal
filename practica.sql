@@ -1349,7 +1349,7 @@ Declare
 	V_exe exception;  -- declarando variable de tipo excepción
 Begin
 
-	V_numero := &ingrese_numero; -- con el & le pediomos al usuario ingresar un numero
+	V_numero := &ingrese_numero; -- con el & le pedimos al usuario ingresar un numero
   If v_numero > 10 then
     Declare
       v_numero2 number;
@@ -1360,11 +1360,11 @@ Begin
       
       end if;
       end if;
- end; 
+    end; 
 
-Else
+  Else
 	Raise v_exe; -- si numero es menor a 10 ocurre excepción
-End if;
+  End if;
 
 exception
 
@@ -1510,8 +1510,8 @@ execute pkg_ejemplo.sp_ejemplo(14,50);
 declare
     v_codigo number;
     v_nombre varchar2(45);
-    v_email varchar2(45);
     v_apellido varchar2(45);
+    v_email varchar2(45);
 begin
     select 
     e.employee_id,
@@ -1523,7 +1523,8 @@ begin
     from employees e
     where employee_id > &Ingrese_Cod;
     DBMS_OUTPUT.put_line('recupero datos' || v_codigo);
-    DBMS_OUTPUT.put_line('codigo: ' || v_nombre);
+    DBMS_OUTPUT.put_line('codigo: ' || v_codigo);
+    DBMS_OUTPUT.put_line('Nombre: ' || v_nombre);
     DBMS_OUTPUT.put_line('email: ' || v_email);
 exception
     when no_data_found then -- mensaje cuando no encuentra datos
@@ -1532,4 +1533,447 @@ exception
         dbms_output.put_line('Has pedido demasiadas filas');
 end;
 --------------------------------------------------------------------
+/
+--select employee_id, first_name, last_name, email from employees;
+/
+-- Recorrer a todos los empleados
+declare
+begin
+for reg in (select employee_id, first_name, last_name, email
+from employees)
+    LOOP
+    dbms_output.put_line('Nombre: ' || reg.first_name ||' '|| reg.last_name);
+    end loop;
+end;
+/
+----------------------------------------
+declare 
+    v_codigo number(3) not null :=0;
+    c_iva constant number:= 0.19; -- constante iva
+    
+begin
+v_codigo :=88;
+c_iva
+;
+end;
+-----------------------
+/
+-- usando variables en bloque pl/sql
+VARIABLE numero number;
+exec :numero := 115
+declare 
+v_apellido varchar2(45);
+begin
+    select last_name
+    into v_apellido 
+    from employees where employee_id=:numero;
+    DBMS_OUTPUT.PUT_LINE('Apellido del empleado '||:numero||' es '||v_apellido );
+end;
+/
+-- probando type y la inserción de datos de tablas en variables
+declare
+    v_nombre employees.first_name%type; -- type dice que variable nombre sera del mismo tipo que el campo first_name de la tabla employees
+    v_apellido varchar2(45);
+    v_id number;
+begin
+    select first_name, last_name, employee_id
+    into v_nombre, v_apellido, v_id
+    from employees where employee_id=100;
+    DBMS_OUTPUT.PUT_LINE('Nombre del empleado numero '||v_id ||' es '|| v_nombre||' '||v_apellido);
+end;
+/
+/*
+Requisitos para nombrar variables
+A. Debe comenzar con una letra
+B. Puede incluid caracteres especiales
+como :$,_ y #. (aún asi no recomendado)
+C. Puede incluir letras y números
+D. No debe contener palabras reservadas
+E. Debe tener un largo máximo de 30 caracteres
 
+La Sintaxis considera:
+identificador: es el nombre de variable
+constant: indica que valor de variable no puede modificarse, deben inicializarse
+tipo dato: indica que la variable es del tipo escalar, compuesto o lob
+not null: indica que variable debe contener siempre un valor, debe ser inicializada
+expr: es cualquier expresion pl/sql que puede ser expresion literal, otra variable
+o incluso una expresion que utiliza una función.
+
+Consideraciones para Declarar e inicializar variables pl/sql
+- usar las convenciones de nombres para variables
+- usar nombres de variables significativos
+- Inicializar variables con not null y constant
+- inicializar variables con := o Default
+- Declarar un identificador por linea
+- Evitar usar nombre de columnas como identificadores
+- Usar not null cuando la variable debe almacenar un valor
+
+- Tipos de datos escalares: tienen un solo valor, depende del tipo de dato de var
+- tipos de datos compuestos: recuperan varios datos 
+- tipos de datos de referencia: tienen valores llamados punteros que apuntan a un lugar
+de almacenamiento (ej cursor)
+
+D. Tipos de datos lob: tienen valores llamados localizadores que especifican 
+la ubicacion de los objetos grandes (como imagenes) que se almacenan fuera de la
+tabla.
+
+E. Variables Bind: No estan declaradas dentro del bloque, sino que fuera como
+variables globales, estas pueden ser utilizadas por varios bloques
+*/
+-- DIA 2 TAV    
+/*
+La Sintaxis considera:
+identificador: es el nombre de variable
+constant: indica que valor de variable no puede modificarse, deben inicializarse
+tipo dato: indica que la variable es del tipo escalar, compuesto o lob
+not null: indica que variable debe contener siempre un valor, debe ser inicializada
+expr: es cualquier expresion pl/sql que puede ser expresion literal, otra variable
+o incluso una expresion que utiliza una función.
+
+Consideraciones para Declarar e inicializar variables pl/sql
+- usar las convenciones de nombres para variables
+- usar nombres de variables significativos
+- Inicializar variables con not null y constant
+- inicializar variables con := o Default
+- Declarar un identificador por linea
+- Evitar usar nombre de columnas como identificadores
+- Usar not null cuando la variable debe almacenar un valor
+
+- Tipos de datos escalares: tienen un solo valor, depende del tipo de dato de var
+- tipos de datos compuestos: recuperan varios datos 
+- tipos de datos de referencia: tienen valores llamados punteros que apuntan a un lugar
+de almacenamiento (ej cursor)
+
+D. Tipos de datos lob: tienen valores llamados localizadores que especifican 
+la ubicacion de los objetos grandes (como imagenes) que se almacenan fuera de la
+tabla.
+
+E. Variables Bind: No estan declaradas dentro del bloque, sino que fuera como
+variables globales, estas pueden ser utilizadas por varios bloques
+*/
+
+---------------------------------------------------------------------------------------
+-- dia 2 tav
+/*
+simbolos simples: + - * /
+delimitadores: son simbolos que tienen funciones especiales en pl/sql.
+pueden ser operadores aritmeticos, logicos y operadores relacionales.
+ej simbolos compuestos:
+ :=
+ =>
+ ||
+ (/ *) delimitador de inicio de comentario de varias lineas
+ (* /)delimitador de fin comentario varias lineas
+  .. operador de rango
+ <> operador de distinto
+ != operador distinto
+ >= mayor o igual
+ <= menor o igual
+ -- comentario de una linea
+
+Existen identificadores especiales denominados palabras reservadas,
+no se pueden utilizar para declarar variables
+- las buenas practicas permiten construid un codigo claro y de mantancion
+mas facil
+
+- Documentar el codigo con comentarios
+Son una buena practica de programacion para explicar el codigo o parte 
+del codigo de un bloque
+
+- Escribir en mayusculas
+* sentencias sql
+* palabras reservadas
+* tipos de datos
+
+- Escribir en minusculas
+* identificadores variables
+* parametros
+* nombres de tablas y columnas
+
+- Indentar el codigo
+- Nombre estandar de variables, comienzan von v (v_var)
+- Nombre de constantes estandar: comienza con c (c_cons)
+- nombre registros estandar: comienzan con reg (reg_empleado)
+- Nombre de cursores estandar: cur (cur_cursor)
+- nombre de funciones estandar fn (fn_funcion)
+- Nombre de procedimientos almacenados: sp (sp_procedimiento)
+- Nombre packete: pkg (pkg_paquete)
+- nombre trigger: tgr (tgr_trigger)
+- nombre vistas: vw (vw_vista)
+- nombre secuencias: seq (seq_cliente)
+
+Sentencias y funciones integradas
+Las funciones disponibles en sentencias procedimentasles son 
+quellas que estan disponibles para ser usadas en sentencias pl/sql
+y en sentencias sql que forman parte del bloque pl/sql
+
+- funciones numericas
+- funciones de caracteres de una fila
+- funciones de conversiones de tipo de dato
+- funciones de fecha
+- funciones Timestamp
+- funciones Greatest y Least
+- funciones Generales
+
+Funciones No Disponibles: solo pueden ser usadas en sentencias sql
+(dentro de pl/sql)
+
+*/
+
+-- recuperar nombre completo, departamento y comision del empleado 
+-- del id 120
+
+declare
+v_nombre_completo varchar2(80);
+v_depto departments.department_name%type;
+v_comission employees.commission_pct%type;
+begin
+    select emp.first_name||' '||emp.last_name,
+         dp.department_name,nvl(emp.commission_pct,0)
+         
+    into v_nombre_completo, v_depto,v_comission
+    from employees emp 
+    inner join departments dp
+    on (emp.department_id = dp.department_id)
+    where employee_id = 120;
+    DBMS_OUTPUT.PUT_LINE('Nombre '|| v_nombre_completo);
+    DBMS_OUTPUT.PUT_LINE('Depto '|| v_depto);
+    DBMS_OUTPUT.PUT_LINE('Comision '|| v_comission);
+end;
+------------------------
+select sysdate from dual;
+----------------------------
+create table xxx(
+    id number primary key,
+    nombre varchar2(45)
+);
+
+create sequence seq_xxx;
+
+declare
+    v_contador number;
+begin
+    v_contador:=seq_xxx.nextval;
+
+insert into xxx values(v_contador,'aldo');
+end;
+select * from xxx;
+commit;
+-- uso de update
+declare
+begin
+    update xxx set nombre='Nicolas' where id=1;
+    end;
+    commit;
+ -----------------------------------------
+-- merge (si no existe inserta, si existe actualiza)
+create table copia_empleados as (select * from employees);
+select * from copia_empleados;
+truncate table copia_empleados;
+
+declare
+begin
+    merge into copia_empleados c
+    using employees e 
+    on (e.employee_id= c.employee_id) -- buscar
+    when matched then
+        update set c.last_name= e.last_name
+    when not matched then 
+        insert values(e.employee_id,e.first_name,e.last_name,e.email,
+        e.phone_number,e.hire_date,e.job_id,e.salary,e.COMMISSION_PCT,e.manager_id,
+        e.department_id);
+end;
+
+select * from copia_empleados order by employee_id;
+rollback;
+
+-- elimina empleado 100, todo lo hecho despues de eso se cancela
+-- por el rollback hasta el savepoint hasta
+declare 
+begin
+    delete from copia_empleados where employee_id= 101;
+    commit;
+    update copia_empleados set salary = salary-10;
+    savepoint hasta;
+    update copia_empleados set salary=salary+10000;
+    update copia_empleados set COMMISSION_PCT=COMMISSION_PCT+0.1;
+    rollback to hasta;
+    commit;
+end;
+
+delete from copia_empleados; -- se eliminan todos los datos de tabla
+rollback; -- se recuperan con volver atras en rollback
+select * from copia_empleados;
+/*
+las consultas select into deben recuperar solo un valor
+cada valor se debe almacenar en una variable mediante clausula into
+debe retornar solo una fila cuando se utilizan variables escalares
+si quiere recuperar multiples filas debe utilizar cursores
+
+- Convenciones de Nombres
+* usar convenciones para evitar ambigüedades en clausula where
+* evitar nombre de columnas de bd para identificadores
+* nombres de columnas de tablas de bd tienen precedencia
+por sobre los nombres de var locales
+* nombres de var locales y parametros formales tienen prioridad por sobre
+los nombres de la tabla de la base de datos
+
+- Manipulación de Datos en pl/sql
+
+Se manipulan los datos en la bd mediante el uso de los comandos
+DML. Se pueden ejecutar comandos DML de INSERT, UPDATE, DELETE Y 
+MERGE sin restricciones en PL/SQL.
+*/
+
+/*
+Control de transacciones pl/sql
+
+
+- COMMIT finaliza la transaccion actual y 
+efectua los cambios en bd
+
+- ROLLBACK finaliza la transaccion actual y deshace todos 
+los cambios realizados en la bd por la transaccion actual, 
+deshace cambios hasta anterior commit o savepoint, para ir al savepoint
+(rollback to nombre_savepoint )
+
+- SAVEPOINT nombra y marca un punto donde se puede retornar el control
+luego de ejecutarse una sentencia rollback
+
+- CREATE TABLE, ALTER TABLE O DROP TABLE TIENEN UN COMMIT IMPLICITO
+- se puede utilizar sql dinamico para otorgar permisos
+*/
+
+/*
+Conversion de Tipo de datos
+
+- CONVERSION IMPLICITA (Es Automatica)
+- de VARCHAR2 o CHAR  a NUMBER.
+- de varchar2 o char a date
+- de number a varchar2
+- de date a varchar2
+
+- CONVERSION EXPLICITA (Es manual mediante funciones predefinidas en sql)
+- TO_CHAR
+- TO_DATE
+- TO_NUMBER
+- TO_TIMESTAMP
+*/
+
+/*
+Operadores pl/sql
+
+- LOGICOS (AND, OR, NOT)
+- ARITMETICOS (+,-,*,/)
+- COMPARACION (=,<,>,<=,>=,<>,IS NULL ,LIKE ,BETWEENM IN)
+- CONCATENACION (CONCAT,||)
+- PARENTESIS PARA CONTROLAR EL ORDEN DE LAS OPERACIONES 
+- EXPONENCIALES(**)
+
+- OPERACIONES DE MAYOR A MENOR PRIORIDAD
+- ** EXPONENCIACION
+- +,- IDENTIFICACION, negacion
+- *,/ multiplicacion, division
+- <,> comparacion
+- not negacion
+- and conjuncion
+- or inclusion
+*/
+
+-- GUIA 1 TAV (DIA 2)
+-- ejercicio a 1.1
+declare
+    v_rut cliente.rutcliente%type;
+    v_nombre cliente.nombre%type;
+    v_cantidad number;
+    v_suma number;
+    v_max number;
+    v_min number;
+    v_pro number;
+begin
+
+select cli.rutcliente, cli.nombre,
+count(fact.total), sum(fact.total), max(fact.total),
+min(fact.total),avg(fact.total)
+
+INTO v_rut,v_nombre,v_cantidad,v_suma,v_max,v_min,v_pro
+
+from cliente cli 
+inner join factura fact
+on fact.rutcliente = cli.rutcliente
+group by cli.rutcliente, cli.nombre
+-- having se usa despues de agrupar, a diferencia del where que va antes
+having count(fact.total)= (select max(count(fac.total)) 
+                    from cliente cli inner join factura fac
+                    on fac.rutcliente = cli.rutcliente
+                    group by cli.nombre);
+
+   dbms_output.put_line('Rut de Cliente: ' || v_rut);
+   dbms_output.put_line('Nombre de Cliente: ' || v_nombre);
+   dbms_output.put_line('Cantidad Factura : ' || v_cantidad);
+   dbms_output.put_line('Monto Total Facturas : ' || v_suma);
+   dbms_output.put_line('Monto Promedio Facturas: ' || v_pro);
+   dbms_output.put_line('Monto Máximo Facturas: ' || v_max);
+   dbms_output.put_line('Monto Minimo Facturas: ' || v_min);
+end;
+/
+-- ejercicio b 1.1
+-- sub consulta del monto mayor
+select max(sum(fact.total)) from cliente cli
+inner join factura fact
+on fact.rutcliente=cli.rutcliente 
+group by cli.nombre;
+
+-- monto menor
+select min(sum(fact.total)) from cliente cli
+inner join factura fact
+on fact.rutcliente=cli.rutcliente 
+group by cli.nombre;
+
+select cli.rutcliente, cli.nombre,sum(fact.total) from cliente cli inner join factura fact
+on fact.rutcliente = cli.rutcliente 
+group by cli.rutcliente, cli.nombre
+having sum(fact.total) = (select min(sum(fact.total)) from cliente cli
+inner join factura fact
+on fact.rutcliente=cli.rutcliente 
+group by cli.nombre);
+
+declare
+    v_run cliente.rutcliente%type;
+    v_nombre varchar2(50);
+    v_sum number;
+begin
+select cli.rutcliente, 
+cli.nombre,
+sum(fact.total)
+into v_run, v_nombre, v_sum
+from cliente cli inner join factura fact
+on fact.rutcliente = cli.rutcliente 
+group by cli.rutcliente, cli.nombre
+having sum(fact.total) = (select min(sum(fact.total)) from cliente cli
+inner join factura fact
+on fact.rutcliente=cli.rutcliente 
+group by cli.nombre);
+
+DBMS_OUTPUT.PUT_LINE('Cliente con Menor Facturación');
+DBMS_OUTPUT.PUT_LINE('---------------------------------');
+DBMS_OUTPUT.PUT_LINE('Rut '||v_run||' - Nombre:'||v_nombre||' Monto Facturado: '||v_sum);
+
+select cli.rutcliente, 
+cli.nombre,
+sum(fact.total)
+into v_run, v_nombre, v_sum
+from cliente cli inner join factura fact
+on fact.rutcliente = cli.rutcliente 
+group by cli.rutcliente, cli.nombre
+having sum(fact.total) = (select max(sum(fact.total)) from cliente cli
+inner join factura fact
+on fact.rutcliente=cli.rutcliente 
+group by cli.nombre);
+
+DBMS_OUTPUT.PUT_LINE('Cliente con Mayor Facturación');
+DBMS_OUTPUT.PUT_LINE('---------------------------------');
+DBMS_OUTPUT.PUT_LINE('Rut '||v_run||' - Nombre:'||v_nombre||' Monto Facturado: '||v_sum);
+
+end;
+/

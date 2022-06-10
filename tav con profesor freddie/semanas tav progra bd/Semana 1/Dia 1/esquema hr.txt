@@ -1,0 +1,6 @@
+select name,con_id from v$pdbs;
+select name from v$active_services where con_id=3;	
+alter session set container=xepdb1;
+alter user hr identified by hr account unlock;
+
+LINK: https://drive.google.com/drive/folders/1VG-01yZ5QVDytguYk1rUp5Qw1Np_8etO?usp=sharing

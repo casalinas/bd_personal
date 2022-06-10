@@ -1,0 +1,50 @@
+--===========================================================================================================
+--EJERCICIO 1
+--===========================================================================================================
+
+--SE CREA LA TABLA DE ERRORES
+CREATE TABLE ERRORES_PROCESOS(
+SEC_ERROR NUMBER(5) PRIMARY KEY,
+SUBPROGRAMA VARCHAR2(20) NOT NULL,
+MENSAJE VARCHAR2(200) NOT NULL
+);
+
+--===========================================================================================================
+--SE CREA LA SECUENCIA QUE LLENA LA TABLA DE ERRORES
+CREATE SEQUENCE SEQ_ERROR;
+--===========================================================================================================
+
+
+CREATE OR REPLACE PROCEDURE COBRO_MULTAS (MES IN NUMBER, ANNO IN NUMBER) IS
+
+CURSOR DATOS IS (SELECT A.RUT, A.ID_VIDEO, A.FECHA_DEVOLUCION, A.FECHA_ENTREGA,
+                 to_date(NVL(TO_CHAR(A.FECHA_ENTREGA,'DD/MM/YYYY'),'06/05/2014')) - A.FECHA_DEVOLUCION AS DIAS 
+                 FROM ARRIENDOS A WHERE TO_CHAR(FECHA_DEVOLUCION,'MM') = MES AND TO_CHAR(FECHA_DEVOLUCION,'YYYY') = ANNO);
+MENSAJE VARCHAR2(200);
+BEGIN
+
+FOR I IN DATOS LOOP
+    BEGIN
+      IF I.DIAS > 0 THEN
+        --SOLO LAS DEVOLUCIONES QUE HAYAN TENIDO SOBRE 1 DÍA DE RETRASO SE DEBEN TOMAR EN CONSIDERACIÓN
+        INSERT INTO MULTAS_ARRIENDOS VALUES (I.RUT, I.ID_VIDEO, I.FECHA_DEVOLUCION, I.FECHA_ENTREGA, I.DIAS, I.DIAS * 5000);
+      END IF;
+    
+    EXCEPTION
+    WHEN OTHERS THEN
+      MENSAJE :=SQLERRM;
+      INSERT INTO ERRORES_PROCESOS VALUES (SEQ_ERROR.NEXTVAL, 'COBRO_MULTAS', MENSAJE);
+    END;
+    
+END LOOP;
+END;
+
+--===========================================================================================================
+-- SE LLAMA AL PROCEDIMIENTO, DESDE UN BLOQUE ANONIMO
+--===========================================================================================================
+
+BEGIN
+  --LE PASO COMO PARAMETRO EL MES Y AÑO DE PROCESO
+  COBRO_MULTAS(04,2014);
+  
+END;

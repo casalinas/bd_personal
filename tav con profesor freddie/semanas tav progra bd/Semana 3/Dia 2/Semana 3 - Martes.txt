@@ -1,0 +1,70 @@
+-- Procedimientos Almacenados
+-- SubPrograma Almacenado / Acepta Parametros / No Retorna Valores por Defecto
+-- se puede ejecutar con la instruccion EXECUTE o en el interior de otro
+-- procedimiento o bloque anonimo
+create or replace procedure sp_listado(p_depto in number,p_total out number)
+is
+   v_cant number:=0;  
+begin
+    for x in (select * from employees where department_id= p_depto)
+    loop
+        dbms_output.put_line('Nombre:' || x.first_name);
+        v_cant:=v_cant+1;
+    end loop;
+    p_total:=v_cant;
+end;
+--------------------------------------------
+set serveroutput on;
+variable cantidad number;
+execute sp_listado(30, :cantidad);
+
+begin
+    dbms_output.put_line(:cantidad);
+end;
+--------------------------------------------
+declare
+    v_cantidad_depto number;
+begin
+    sp_listado(30, v_cantidad_depto);
+    dbms_output.put_line('Cantidad de Deptos:' || v_cantidad_depto);
+end;
+
+-------------------------------------------------------------------------
+-- Funciones
+-- Sub Programas Almacenados / Retornan datos por naturaleza  / pueden
+-- recibir datos como parametros / Al finalizar deben retornar RETURN
+create or replace function fn_cantidad_empleados(p_depto in number)
+return number
+is
+    v_cantidad number;
+begin
+    select count(*) into v_cantidad
+    from employees where department_id = p_depto;
+    return v_cantidad;
+end;
+----------------------------------------
+-- para ejecutarla se llama desde un bloque anonimo / otra funcion / desde
+-- un procedimiento almacenado / desde una instruccion SELECT
+declare
+    v_cantidad number;
+begin
+    v_cantidad:= fn_cantidad_empleados(30);
+    dbms_output.put_line('Cantidad de Empleados:' || v_cantidad);
+end; 
+
+select department_name, fn_cantidad_empleados(department_id) 
+from departments;
+
+----------------------------------------------------------------------
+-- Paquetes
+-- Permiten organizar procedimientos almacenados, funciones, variables, constantes
+-- etc (bloques de codigo) en base aun nombre en comun
+-- Poseen una cabecera y cuerpo
+-- Todo lo declarado en cabecera sera de uso publico
+-- Todo los declarado en el cuerpo sera privado a menos que se encuentre
+-- definido en cabecera
+create or replace package pkg_hr
+is
+    function fn_cantidad_empleados(p_depto in number) return number;
+    procedure sp_listado(p_depto in number,p_total out number);
+end;

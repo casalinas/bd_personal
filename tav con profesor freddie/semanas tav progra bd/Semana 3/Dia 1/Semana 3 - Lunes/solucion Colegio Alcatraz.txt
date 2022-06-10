@@ -1,0 +1,85 @@
+declare
+    v_promedio varchar2(45);
+    v_asistencia varchar2(45);
+    v_situacion varchar2(45);
+begin
+    execute immediate 'truncate table resumen_situacion';
+    execute immediate 'truncate table cursos_aprobados';
+    execute immediate 'truncate table asignaturas_pendientes';
+    
+    for x in (SELECT a.cod_alumno,a.pnombre,a.apellidopat
+                ,round(avg(n.promedio),1) as promedio
+                ,round(avg(asis.porcentaje),1) as porc_asistencia
+                FROM alumno a 
+                join notas n on  a.cod_alumno=n.cod_alumno
+                join asistencia asis on asis.cod_alumno = a.cod_alumno 
+                group by a.cod_alumno, a.pnombre, a.apellidopat
+                order by a.cod_alumno)
+    loop
+        -- estado promedio
+        declare
+            v_codigo_error number;
+        begin
+            select estado into v_promedio 
+            from tramo_promedio
+            where x.promedio between prom_minimo and prom_maximo;
+        exception
+            when OTHERS then
+                v_codigo_error:=sqlcode;
+                insert into errores
+                values(seq_error.nextval
+                , v_codigo_error
+                ,'Problema Promedio alumno ' || x.pnombre || ' promedio:' || x.promedio
+                ,sysdate);
+                v_promedio:='--';
+        end;
+        -- estado asistencia
+        declare
+            v_codigo_error number;
+        begin
+            select descripcion into v_asistencia
+            from tramo_asistencia
+            where x.porc_asistencia between por_min and por_max;
+        exception
+            when OTHERS then
+                v_codigo_error:=sqlcode;
+                insert into errores
+                values(seq_error.nextval
+                , v_codigo_error
+                ,'Problema Asistencia alumno ' || x.pnombre || ' asistencia:' || x.porc_asistencia
+                ,sysdate);
+                v_asistencia:='--';
+        end;
+        if v_asistencia='Alta' and v_promedio in('Bueno','Muy Bueno') then
+            v_situacion:='Aprobado';
+        else
+            v_situacion:='Reprobado';
+        end if;
+        dbms_output.put_line('Promedio:' || x.promedio || ' Estado:' || v_promedio || ' Asistencia:' || x.porc_asistencia || ' Estado Asistencia:' || v_asistencia || ' Situacion:' || v_situacion);
+        insert into resumen_situacion
+        values(x.cod_alumno, x.pnombre,x.apellidopat,x.promedio,x.porc_asistencia,v_promedio,v_asistencia,v_situacion);
+    end loop;
+    --- 2
+    for x in (select n.cod_alumno,asig.sigla,asig.nombre,n.promedio
+                from notas n 
+                join asignatura asig on n.cod_asignatura = asig.cod_asignatura
+                where n.promedio>=6)
+    loop
+        insert into cursos_aprobados
+        values(x.cod_alumno,x.sigla,x.nombre,x.promedio);
+    end loop; 
+    
+    for x in (select n.cod_alumno,asig.sigla,asig.nombre,n.promedio
+                from notas n 
+                join asignatura asig on n.cod_asignatura = asig.cod_asignatura
+                where n.promedio=0)
+    loop
+        insert into asignaturas_pendientes
+        values(x.cod_alumno,x.sigla,x.nombre,x.promedio);
+    end loop; 
+end;
+
+select * from errores;
+---------------------------------------------------------------
+-- procedimientos almacenados, funciones, paquetes y disparadores
+-- sql dinamico

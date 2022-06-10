@@ -1,0 +1,74 @@
+----------------------------------------------------------------------------------------------------------------------------
+
+--VARIABLES DE SUSTITUCIÓN CON &
+
+----------------------------------------------------------------------------------------------------------------------------
+--EJEMPLO 1
+--HACIENDO USO DEL SÍMBOLO "&" SEGUIDO DEL NOMBRE DE LA VARIABLE, PUEDO ALMACENAR EL VALOR INGRESADO POR EL USUARIO EN UNA VARIABLE
+
+
+DECLARE
+    V_NOMBRE EMPLOYEES.FIRST_NAME%TYPE;
+BEGIN
+    
+    V_NOMBRE := '&MI_NOMBRE';
+    DBMS_OUTPUT.PUT_LINE('EL NOMBRE ES : '|| V_NOMBRE);
+END;
+
+----------------------------------------------------------------------------------------------------------------------------
+--EJEMPLO 2 
+--UTILIZANDO SELECT INTO, PUEDO MANEJAR EL RESULTADO DE LA BUSQUEDA MEDIANTE DATOS INGRESADOS POR EL USUARIO
+--HACIENDO USO DEL SÍMBOLO "&" SEGUIDO DEL NOMBRE DE LA VARIABLE
+
+DECLARE
+    V_NOMBRE EMPLOYEES.FIRST_NAME%TYPE;
+BEGIN
+    
+    SELECT
+        FIRST_NAME
+        INTO
+        V_NOMBRE
+    FROM EMPLOYEES
+    WHERE EMPLOYEE_ID = '&ID_EMPLEADO';
+    
+    DBMS_OUTPUT.PUT_LINE('EL NOMBRE ES : '|| V_NOMBRE);
+    
+END;
+
+
+
+----------------------------------------------------------------------------------------------------------------------------
+
+--SENTENCIA MERGE : PERMITE MIGRAR DATOS DE UNA TABLA A OTRA
+
+----------------------------------------------------------------------------------------------------------------------------
+--CREAMOS UNA TABLA A PARTIR DE LA TABLA EMPLOYEES
+
+	CREATE TABLE COPIA_EMPLEADOS  AS  (SELECT * FROM EMPLOYEES);
+
+--BORRAMOS TODOS LOS INSERT O FILAS DE LA TABLA
+
+	TRUNCATE TABLE COPIA_EMPLEADOS;
+----------------------------------------------------------------------------------------------------------------------------
+
+DECLARE
+
+BEGIN
+
+    MERGE INTO COPIA_EMPLEADOS C
+    USING EMPLOYEES E
+        ON (E.EMPLOYEE_ID = C.EMPLOYEE_ID) --LA BUSQUEDA DE COINCIDENCIAS SE HARÁ MEDIANTE LA PK
+    WHEN MATCHED THEN  --CUANDO HAYAN DATOS QUE COINCIDEN, ENTONCES ACTUALIZAMOS
+    UPDATE SET 
+        C.FIRST_NAME    = E.FIRST_NAME,
+        C.LAST_NAME     = E.LAST_NAME,
+        C.DEPARTMENT_ID = E.DEPARTMENT_ID
+    WHEN NOT MATCHED THEN -- CUANDO NO HAYAN FILAS QUE COINCIDAN, ENTONCES INSERTAMOS
+    INSERT VALUES(E.EMPLOYEE_ID, E.FIRST_NAME, E.LAST_NAME, E.EMAIL, E.PHONE_NUMBER,
+                  E.HIRE_DATE, E.JOB_ID, E.SALARY, E.COMMISSION_PCT, E.MANAGER_ID,
+                  E.DEPARTMENT_ID);
+
+END;
+
+
+

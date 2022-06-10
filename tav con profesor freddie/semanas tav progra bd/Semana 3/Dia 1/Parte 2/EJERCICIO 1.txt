@@ -1,0 +1,68 @@
+--===========================================================================================================
+--EJERCICIO 1
+--===========================================================================================================
+
+--SE CREA LA TABLA DE ERRORES
+CREATE TABLE ERRORES_PROCESOS_DUMBO (
+SEC_ERROR NUMBER(5) PRIMARY KEY,
+SUBPROGRAMA VARCHAR2(20) NOT NULL,
+MENSAJE VARCHAR2(200) NOT NULL
+);
+--===========================================================================================================
+--SE CREA LA SECUENCIA QUE LLENA LA TABLA DE ERRORES
+CREATE SEQUENCE SEQ_ERROR;
+
+--===========================================================================================================
+
+--•	El procedimiento deberá retornar el total de empleados afectos a impuestos. 
+CREATE OR REPLACE PROCEDURE CALCULO_IMPUESTO (CANT_EMP OUT NUMBER, CANT_EMP_IMPUESTO OUT NUMBER)IS
+
+CURSOR DATOS                IS (SELECT RUT_EMPLEADO, DV_RUT_EMPLEADO, (SUELDO_BASE*12) AS ANUAL FROM EMPLEADO );
+IMPUESTO                    NUMBER(10,2):= 0; 
+MENSAJE                     VARCHAR2(200);
+CONTADOR_EMP_TOTALES        NUMBER(1):= 0; --CONTARÁ EL TOTAL DE EMPLEADOS
+CONTADOR_EMP_AFECT_IMPUESTO NUMBER(1) :=0; --CONTARÁ SOLO AQUELLOS QUE LES CORRESPONDE IMPUESTO
+
+BEGIN
+
+FOR I IN DATOS LOOP
+  BEGIN
+  CONTADOR_EMP_TOTALES:= CONTADOR_EMP_TOTALES + 1; --CONTARÁ EL TOTAL DE EMPLEADOS
+  
+  IF I.ANUAL > 2000000 THEN
+    IMPUESTO := I.ANUAL * 0.1;
+    CONTADOR_EMP_AFECT_IMPUESTO := CONTADOR_EMP_AFECT_IMPUESTO + 1; --CONTARÁ SOLO AQUELLOS QUE LES CORRESPONDE IMPUESTO
+  ELSE
+    IMPUESTO :=0;
+  END IF;
+  
+  INSERT INTO IMPUESTO VALUES (I.RUT_EMPLEADO, I.DV_RUT_EMPLEADO, I.ANUAL, IMPUESTO);
+  
+  EXCEPTION
+    WHEN OTHERS THEN
+      MENSAJE:=SQLERRM;
+      INSERT INTO ERRORES_PROCESOS_DUMBO VALUES (SEQ_ERROR.NEXTVAL,'CALCULO_IMPUESTO', MENSAJE);
+  END;
+END LOOP;
+
+--ANTES DE FINALIZAR GUARDO EN LAS VARIABLES DE SALIDA, LOS CONTADORES
+CANT_EMP          := CONTADOR_EMP_TOTALES;
+CANT_EMP_IMPUESTO := CONTADOR_EMP_AFECT_IMPUESTO;
+
+END;
+
+
+--===========================================================================================================
+--el bloque anónimo que ejecute el procedimiento deberá mostrar los mensaje:
+--o	Total empleados procesados: total_de_empleados_procesados
+--o	Total empleados afectos a impuestos: total_de_empleados.
+DECLARE
+
+EMP_PROCESADOS NUMBER(2)    :=0;
+EMP_AFECTOS_A_IMP NUMBER(2) :=0;
+BEGIN
+ CALCULO_IMPUESTO(EMP_PROCESADOS, EMP_AFECTOS_A_IMP);
+ DBMS_OUTPUT.PUT_LINE('TOTAL DE EMPLEADOS PROCESADOS : ' || EMP_PROCESADOS);
+ DBMS_OUTPUT.PUT_LINE('TOTAL DE EMPLEADOS AFECTOS A IMPUESTOS : ' || EMP_AFECTOS_A_IMP );
+END;
+--===========================================================================================================

@@ -1,0 +1,178 @@
+create SEQUENCE seq_movilizacion;--> 1 / 1
+create SEQUENCE seq_descuento;
+create table porc_movilizacion(
+    sec_movilizacion number primary key,
+    sueldo_base_inf number,
+    sueldo_base_sup number,
+    porc_mov number
+);
+insert into porc_movilizacion values(seq_movilizacion.nextval, 100000, 300000,50);
+insert into porc_movilizacion values(seq_movilizacion.nextval, 300001,1000000,30);
+insert into porc_movilizacion values(seq_movilizacion.nextval,1000001,2500000,20);
+insert into porc_movilizacion values(seq_movilizacion.nextval,2500001,8000000,5);
+select * from porc_movilizacion;
+select * from porc_bonif_annos_contrato;
+select * from comision_venta;
+select * from asig_escolaridad;
+select * from afp;
+select * from salud;
+select * from haber_calc_mes;
+create table descuento_calc_mes(
+    cod_emp number primary key,
+    numrut_emp varchar2(15),
+    mes_proceso number,
+    anno_proceso number,
+    valor_salud number,
+    valor_afp number
+)
+
+---------------------------------------------------------------------
+-- variable BIND
+variable carga_familiar number;
+execute :carga_familiar:=4500;
+variable mov_adicional_1 number;
+execute :mov_adicional_1:=25000;
+variable mov_adicional_2 number;
+execute :mov_adicional_2:=40000;
+variable colacion number;
+execute :colacion:=40000;
+variable fecha varchar2(10);
+execute :fecha:='01/02/2018';
+
+
+declare
+    v_movilizacion number:=0;
+    v_asignacion_especial number:=0;
+    v_comision number:=0;
+    v_salud number:=0;
+    v_afp number:=0;
+    v_escolaridad number:=0;
+    v_h number:=0;
+    v_d number:=0;
+    v_cant_cargas number:=0;
+begin
+    execute immediate 'truncate table DESCUENTO_CALC_MES';
+    execute immediate 'truncate table haber_calc_mes';
+    
+    -- cursor explicito (recorrer registros)
+    for x in (select e.*,c.nombre_comuna,trunc((sysdate-e.fecing_emp)/365) as antiguedad,
+              ae.porc_asig_escolaridad,afp.porc_descto_afp,salud.porc_descto_salud
+                from empleado e 
+                inner join comuna c on e.id_comuna = c.id_comuna
+                inner join asig_escolaridad ae on e.id_escolaridad = ae.id_escolaridad
+                inner join afp on e.cod_afp = afp.cod_afp
+                inner join salud on salud.cod_salud = e.cod_salud)
+    loop
+        dbms_output.put_line(x.nombre_emp);
+        
+        -- bloque para recuperar valor de movilizacion
+        declare
+            v_porc number;
+        begin
+          -- cursor implicito (recupera solo una fila)  
+          select porc_mov into v_porc from porc_movilizacion
+          where x.sueldo_base_emp between sueldo_base_inf and sueldo_base_sup;
+          v_movilizacion:= round( x.sueldo_base_emp * (v_porc/100) ,0);
+          dbms_output.put_line('porc:' || v_porc || ' $:' || v_movilizacion);
+        end;
+        
+        -- movilizacion adicional
+        if x.nombre_comuna in('La Pintana', 'Cerro Navia','Peñalolén') then
+            v_movilizacion:=v_movilizacion+ :mov_adicional_1;
+            dbms_output.put_line('Adicional 1:' || :mov_adicional_1);
+        end if;
+        if x.nombre_comuna in('Melipilla','María Pinto','Curacaví', 'Talagante', 'Isla de Maipo','Paine') then
+            v_movilizacion:=v_movilizacion + :mov_adicional_2;
+            dbms_output.put_line('Adicional 2:' || :mov_adicional_2);
+        end if;
+        
+        -- Asignación Especial por años Contratados 
+        declare
+            v_porc number;
+        begin
+            select porc_bonif into v_porc
+            from porc_bonif_annos_contrato
+            where x.antiguedad between annos_inferior and annos_superior;
+            v_asignacion_especial:= x.sueldo_base_emp * v_porc;
+            dbms_output.put_line('Asignacion especial:' || v_porc || ' $:' ||v_asignacion_especial);
+        exception
+            when OTHERS then
+               v_porc:=0;
+               v_asignacion_especial:=0;
+               dbms_output.put_line('error al buscar antiguedad');
+        end;
+        
+        -- comision por ventas
+        select nvl(sum(cv.valor_comision),0) into v_comision
+        from boleta b inner join comision_venta cv
+        on cv.nro_boleta = b.nro_boleta 
+        where b.numrut_emp= x.numrut_emp and 
+              to_char(b.fecha_boleta,'MM/yyyy')=to_char(to_date(:fecha),'MM/yyyy');
+        dbms_output.put_line('Comision:' || v_comision);
+        
+        -- Asignación de  Escolaridad 
+        v_escolaridad:= (x.porc_asig_escolaridad / 100) * x.sueldo_base_emp;
+        
+        -- AFP
+        v_afp:=round( (x.porc_descto_afp / 100) * x.sueldo_base_emp , 0);
+        
+        -- Salud
+        v_salud:= round((x.porc_descto_salud / 100) * x.sueldo_base_emp,0);
+                
+        -- cargas familiares
+        select count(numrut_carga) into v_cant_cargas  from empleado e 
+        inner join carga_familiar cf on cf.numrut_emp=e.numrut_emp 
+        where cf.numrut_emp= x.numrut_emp;
+        
+        v_h:=x.sueldo_base_emp+(v_cant_cargas* :carga_familiar)+v_movilizacion+ :colacion+ v_asignacion_especial+ v_comision+v_escolaridad;
+        v_d:=v_afp+v_salud;
+        
+        insert into haber_calc_mes values(
+                    x.numrut_emp,
+                    to_char(to_date(:fecha),'MM'),
+                    to_char(to_date(:fecha),'yyyy'),
+                    x.sueldo_base_emp,
+                    v_asignacion_especial,
+                    (v_cant_cargas* :carga_familiar),
+                    v_movilizacion,
+                    :colacion,
+                    v_comision,
+                    v_h);
+          insert into descuento_calc_mes values(
+            seq_descuento.nextval,
+            x.numrut_emp,
+            to_char(to_date(:fecha),'MM'),
+            to_char(to_date(:fecha),'yyyy'),
+            v_salud,
+            v_afp
+          ) ;       
+    end loop;
+    
+end;
+
+
+------------------------------------------------------
+-- sql de prueba para el cursor
+select e.*,c.nombre_comuna,trunc((sysdate-e.fecing_emp)/365) as antiguedad,
+ae.porc_asig_escolaridad,afp.porc_descto_afp,salud.porc_descto_salud
+from empleado e 
+inner join comuna c on e.id_comuna = c.id_comuna
+inner join asig_escolaridad ae on e.id_escolaridad = ae.id_escolaridad
+inner join afp on e.cod_afp = afp.cod_afp
+inner join salud on salud.cod_salud = e.cod_salud;
+
+-- sql de prueba para sacar comision
+select nvl(sum(cv.valor_comision),0) from boleta b inner join comision_venta cv
+on cv.nro_boleta = b.nro_boleta 
+where b.numrut_emp= 12113369 and to_char(b.fecha_boleta,'MM/yyyy')=to_char(to_date('01/02/2018'),'MM/yyyy');
+
+-- rut de un empleado para pruebas 12113369 tiene 9 boletas
+
+-- cantidad de cargas familiares de ese rut
+select count(numrut_carga) from empleado e 
+inner join carga_familiar cf on cf.numrut_emp=e.numrut_emp 
+where cf.numrut_emp=12113368;
+
+-- probar las tablas
+select * from haber_calc_mes;
+select * from descuento_calc_mes;

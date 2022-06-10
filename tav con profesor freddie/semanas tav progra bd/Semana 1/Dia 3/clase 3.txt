@@ -1,0 +1,151 @@
+set serveroutput on; --> activar salida por script
+
+/* ejemplo 1*/
+select first_name,last_name,salary,hire_date
+                from employees where EXTRACT(YEAR FROM hire_date)=2005;
+
+create table empleados(
+    first_name varchar2(45) not null,
+    last_name varchar2(45) not null,
+    salary number
+);
+select * from empleados;
+truncate table empleados;
+------------------------------------------------------------------------
+
+variable anno number;
+execute :anno:=2007;
+variable bono number;
+execute :bono:=500;
+
+declare
+    v_contador number:=0;
+    v_total_sueldos employees.salary%type:=0;
+    v_promedio number;
+begin
+    execute IMMEDIATE 'truncate table empleados';
+    -- cursor implicito
+    select avg(salary) into v_promedio from employees;    
+    -- crear un cursor explicito
+    for reg in (select first_name,last_name,salary
+                from employees where EXTRACT(YEAR FROM hire_date)=:anno)
+    loop
+        dbms_output.put_line(reg.first_name);
+        dbms_output.put_line(reg.last_name);
+        dbms_output.put_line(reg.salary);
+        if reg.salary<v_promedio then
+            dbms_output.put_line('Bono: ' || :bono);
+            dbms_output.put_line('Nuevo Salario:' || (reg.salary+:bono));
+        end if;
+        dbms_output.put_line('-----------------');
+        v_contador:=v_contador+1;
+        v_total_sueldos:=v_total_sueldos+reg.salary;
+        insert into empleados values(reg.first_name, reg.last_name,reg.salary);
+    end loop; 
+    dbms_output.put_line('Cantidad de Empleados:' || v_contador);
+    dbms_output.put_line('Total Sueldos:' || v_total_sueldos);
+    -- cursor implicito
+    select sum(salary) into v_total_sueldos 
+    from employees;
+    dbms_output.put_line('Total 2:' || v_total_sueldos);
+    
+end;
+----------------------------------------------------------------------------
+-- control de transacciones
+create table personas as select * from employees;
+select * from personas;
+declare
+
+begin
+    delete from personas where salary<4000;
+    commit;
+    update personas set first_name=first_name || 'x';
+    savepoint actualizar;
+        update personas set salary=salary*1.5;
+    ROLLBACK TO actualizar;
+end;
+ROLLBACK;
+-----------------------------------------------------------------
+-- estructuras de control
+
+select first_name,last_name,salary,
+    case
+        when salary>=10000 then 'A'
+        else 'B'
+    end as clase
+from employees;
+
+declare
+    v_bono number;
+    v_anti number;
+begin
+    for x in (select first_name,last_name,salary,
+                case
+                    when salary>=10000 then 'A'
+                else 'B'
+                end as clase from employees)
+    loop
+        v_bono:= case x.clase
+                     when 'B' then 500
+                     when 'A' then 1
+                     else 0 
+                 end ;
+        v_anti:= case
+                    when x.salary>1000 then 10
+                    when x.salary<500 then 500
+                    else 100 
+                end;  
+        if not (x.clase='A' and length(x.first_name)<10) then
+            v_bono:=1;
+            elsif x.clase='B' then
+                v_bono:=500;
+            else
+                v_bono:=0;
+        end if;
+        dbms_output.put_line('Nombre:' || x.first_name || ' Bono:' || v_bono || ' Clase:' || x.clase);
+    end loop;
+end;
+------------------------------------------------------------------
+-- ciclos
+-------------- loop basico
+declare
+    v_contador number:=0;
+begin
+    loop
+        dbms_output.put_line('hola');
+        exit when v_contador=10;
+        v_contador:=v_contador+1;
+    end loop;
+end;
+-------------- for
+declare
+   
+begin
+    for x in 1..10
+    loop
+        dbms_output.put_line('hola ' || x);
+    end loop;
+end;
+
+
+---------------- for cursor explicito
+declare
+   
+begin
+    for x in (select first_name from employees)
+    loop
+        dbms_output.put_line('hola ' || x.first_name);
+    end loop;
+end;
+
+----------------- while
+declare
+    v_contador number:=0;
+begin
+    while v_contador<=10
+    loop
+        dbms_output.put_line('hola ' || v_contador);
+        v_contador:=v_contador+1;
+    end loop;
+end;
+

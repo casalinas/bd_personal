@@ -1,0 +1,59 @@
+----------------------------------------------------------------------------------------------------------------
+-- EXCEPCIONES PREDEFINIDAS POR ORACLE
+----------------------------------------------------------------------------------------------------------------
+
+
+DECLARE
+    V_NOMBRE NUMBER;
+    
+    V_CODIGO_ERROR NUMBER;
+    V_MENSAJE_ERROR VARCHAR2(255);
+BEGIN
+
+    SELECT FIRST_NAME
+           INTO
+           V_NOMBRE
+    FROM EMPLOYEES
+    WHERE EMPLOYEE_ID = 100;
+    
+    DBMS_OUTPUT.PUT_LINE(V_NOMBRE);
+
+    EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('LA CONSULTA SELECT NO ENCONTRO DATOS');
+    WHEN TOO_MANY_ROWS THEN
+        DBMS_OUTPUT.PUT_LINE('LA CONSULTA SELECT RESCATO MUCHAS FILAS');
+    WHEN OTHERS THEN
+        V_CODIGO_ERROR  := SQLCODE; --GUARDAMOS EL CODIGO DEL ERROR
+        V_MENSAJE_ERROR := SQLERRM; --GUARDAMOS EL MENSAJE DEL ERROR
+        
+        DBMS_OUTPUT.PUT_LINE('HORROR GENÉRICO');
+        DBMS_OUTPUT.PUT_LINE('CODIGO  : '|| V_CODIGO_ERROR);
+        DBMS_OUTPUT.PUT_LINE('MENSAJE : '|| V_MENSAJE_ERROR);
+END;
+
+
+
+
+
+----------------------------------------------------------------------------------------------------------------
+-- EXCEPCIONES PERSONALIZADAS
+----------------------------------------------------------------------------------------------------------------
+
+
+DECLARE
+    ERROR_FORANEA EXCEPTION; --CREAMOS UNA VARIABLE
+    PRAGMA EXCEPTION_INIT(ERROR_FORANEA , -2291 ); --A LA VARIABLE LE ASIGNO EL CODIGO DE ERROR
+BEGIN
+
+     INSERT INTO EMPLOYEES VALUES (666,'JUAN','PÉREZ','JPEREZ',1245789,'17/01/2014','AD_PRES',2500,NULL,101,99);
+     
+     --SI LA CONSULA INSERT NO FUNCIONA
+     IF SQL%NOTFOUND THEN
+        RAISE ERROR_FORANEA; --LANZAR O FORZAR LA EXCEPTION
+     END IF;
+    
+    EXCEPTION
+    WHEN ERROR_FORANEA THEN
+        DBMS_OUTPUT.PUT_LINE('ERROR CLAVE FORANEA');
+END;

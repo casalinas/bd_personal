@@ -1,0 +1,92 @@
+-------------------------------------------------------------------------------------------------------------------------
+-cursor sin parametros
+-------------------------------------------------------------------------------------------------------------------------
+
+--SE MUESTRE EL NOMBRE DEL EMPLEADO Y SU NOMBRE DE DEPARTAMENTO
+--SOLO DE LOS EMPLEADOS DEL DEPARTAMENTO 100
+SET SERVEROUTPUT ON;
+DECLARE
+    CURSOR C_EMPLEADOS IS  (SELECT FIRST_NAME, DEPARTMENT_NAME
+                            FROM EMPLOYEES E
+                            JOIN DEPARTMENTS D
+                            ON E.DEPARTMENT_ID = D.DEPARTMENT_ID
+                            WHERE D.DEPARTMENT_ID = 100)
+                            ORDER BY E.FIRST_NAME ASC;
+    
+    V_DATOS C_EMPLEADOS%ROWTYPE;
+
+BEGIN
+    OPEN C_EMPLEADOS;
+        LOOP
+            FETCH C_EMPLEADOS INTO V_DATOS;
+            EXIT WHEN C_EMPLEADOS%NOTFOUND;
+            
+            DBMS_OUTPUT.PUT_LINE('NOMBRE         : '        || V_DATOS.FIRST_NAME);
+            DBMS_OUTPUT.PUT_LINE('DEPARTAMENTO   : '  || V_DATOS.DEPARTMENT_NAME);
+        END LOOP;    
+    CLOSE C_EMPLEADOS;    
+
+END;
+
+
+-------------------------------------------------------------------------------------------------------------------------
+-cursor con parametros
+-------------------------------------------------------------------------------------------------------------------------
+
+DECLARE
+    CURSOR C_EMPLEADOS (PARAMETRO_ID NUMBER) IS  (SELECT FIRST_NAME, DEPARTMENT_NAME
+                                                    FROM EMPLOYEES E
+                                                    JOIN DEPARTMENTS D
+                                                    ON E.DEPARTMENT_ID = D.DEPARTMENT_ID
+                                                    WHERE D.DEPARTMENT_ID = PARAMETRO_ID)
+                                                    ORDER BY E.FIRST_NAME ASC;
+    
+    V_DATOS C_EMPLEADOS%ROWTYPE;
+
+BEGIN
+    OPEN C_EMPLEADOS(100); --LE PASAMOS EL VALOR POR PARÁMETROS
+        LOOP
+            FETCH C_EMPLEADOS INTO V_DATOS;
+            EXIT WHEN C_EMPLEADOS%NOTFOUND;
+            
+            DBMS_OUTPUT.PUT_LINE('NOMBRE         : '        || V_DATOS.FIRST_NAME);
+            DBMS_OUTPUT.PUT_LINE('DEPARTAMENTO   : '  || V_DATOS.DEPARTMENT_NAME);
+        END LOOP;    
+    CLOSE C_EMPLEADOS;    
+
+END;
+
+
+-------------------------------------------------------------------------------------------------------------------------
+-cursor con parametros
+-------------------------------------------------------------------------------------------------------------------------
+
+
+
+---MOSTRAR EL SUELDO , EL NOMBRE DEL EMPLEADO, Y UBICACIÓN DEL DEPARTAMENTO
+--BAJO LOS SIGUIENTES CRITERIOS: 
+--1) BUSCAR SOLO LOS EMPLEADOS QUE TRABAJAN EN Oxford INGRESANDO ESA UBICACION POR PARAMETRO
+--2) BUSCAR DE AQUELLOS, SOLO LOS QUE GANEN UN SUELDO MAYOR A 1000 DOLARES, INGRESANDO ESE VALOR
+--   POR PARAMETRO
+DECLARE
+CURSOR C_EMPLEADOS(SUELDO NUMBER,CIUDAD VARCHAR2 ) IS (
+                                                        SELECT FIRST_NAME, SALARY,CITY
+                                                        FROM EMPLOYEES E
+                                                        JOIN DEPARTMENTS D
+                                                        ON E.DEPARTMENT_ID = D.DEPARTMENT_ID
+                                                        JOIN LOCATIONS L 
+                                                        ON L.LOCATION_ID = D.LOCATION_ID
+                                                        WHERE E.SALARY > SUELDO AND L.CITY = CIUDAD);
+V_DATOS C_EMPLEADOS%ROWTYPE;
+BEGIN
+    OPEN C_EMPLEADOS(1000, 'Oxford');
+        LOOP
+            FETCH C_EMPLEADOS INTO V_DATOS;
+            EXIT WHEN C_EMPLEADOS%NOTFOUND;
+                DBMS_OUTPUT.PUT_LINE('NOMBRE : ' || V_DATOS.FIRST_NAME);
+                DBMS_OUTPUT.PUT_LINE('SUELDO : ' || V_DATOS.SALARY);
+                DBMS_OUTPUT.PUT_LINE('CIUDAD : ' || V_DATOS.CITY); 
+                DBMS_OUTPUT.PUT_LINE('-----------------------------'); 
+        END LOOP;
+    CLOSE C_EMPLEADOS;
+END;

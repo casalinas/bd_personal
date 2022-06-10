@@ -1,0 +1,65 @@
+--1) repaso!!
+SET SERVEROUTPUT ON;
+------------------------------------------------------------------------------------------
+CREATE TABLE TRAMO_SUELDOS(
+    ID NUMBER PRIMARY KEY,
+    SUELDO_INF NUMBER,
+    SUELDO_SUP NUMBER,
+    DESCRIPCION VARCHAR2(20)
+);
+
+INSERT INTO TRAMO_SUELDOS VALUES (1, 1000, 3000, 'BAJO');
+INSERT INTO TRAMO_SUELDOS VALUES (2, 3001, 4000, 'MEDIO');
+INSERT INTO TRAMO_SUELDOS VALUES (3, 4001, 10000, 'ALTO');
+
+--CREACIÓN DE LA TABLA DE ERRORES
+CREATE TABLE ERRORES(
+    ID NUMBER PRIMARY KEY,
+    CODIGO NUMBER,
+    MENSAJE VARCHAR2(255),
+    FECHA_PROCESO DATE
+);
+
+--SECUENCIA PARA LOS ERRORES
+CREATE SEQUENCE SEC_ERRORES;
+
+--------------------------------------------------------------------------------------------
+-- EVAUAR LOS SUELDOS DE TODOS LOS EMPLEADOS SEGÚN SU DEPARTAMENTO
+DECLARE
+    CURSOR C_EMPLEADOS IS (SELECT FIRST_NAME, SALARY 
+                            FROM EMPLOYEES E
+                            JOIN DEPARTMENTS D
+                            ON E.DEPARTMENT_ID = D.DEPARTMENT_ID);
+    V_DESC VARCHAR2(20);
+    V_CODIGO_ERROR NUMBER;
+    V_MENSAJE_ERROR VARCHAR2(255);
+BEGIN
+    
+    FOR X IN C_EMPLEADOS LOOP
+        BEGIN -----
+                SELECT DESCRIPCION INTO V_DESC FROM TRAMO_SUELDOS
+                WHERE X.SALARY BETWEEN SUELDO_INF AND SUELDO_SUP;
+                        
+                IF V_DESC = 'BAJO' THEN
+                    DBMS_OUTPUT.PUT_LINE('SUELDO BAJO');
+                END IF;
+                
+                IF V_DESC = 'MEDIO' THEN
+                    DBMS_OUTPUT.PUT_LINE('SUELDO MEDIO');
+                END IF;
+                
+                IF V_DESC = 'ALTO' THEN
+                    DBMS_OUTPUT.PUT_LINE('SUELDO ALTO');
+                END IF;
+                
+                EXCEPTION
+                WHEN NO_DATA_FOUND THEN
+                V_CODIGO_ERROR  := SQLCODE;
+                V_MENSAJE_ERROR := X.FIRST_NAME || ' NO ESTÁ EN EL TRAMO '  ;
+                INSERT INTO ERRORES VALUES (SEC_ERRORES.NEXTVAL, V_CODIGO_ERROR, V_MENSAJE_ERROR,SYSDATE);
+                
+        END; -----
+    END LOOP;
+    
+END;
+

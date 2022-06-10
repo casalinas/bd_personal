@@ -1,0 +1,171 @@
+-- Procedimientos Almacenados
+-- SubPrograma Almacenado / Acepta Parametros / No Retorna Valores por Defecto
+-- se puede ejecutar con la instruccion EXECUTE o en el interior de otro
+-- procedimiento o bloque anonimo
+create or replace procedure sp_listado(p_depto in number,p_total out number)
+is
+   v_cant number:=0;  
+begin
+    for x in (select * from employees where department_id= p_depto)
+    loop
+        dbms_output.put_line('Nombre:' || x.first_name);
+        v_cant:=v_cant+1;
+    end loop;
+    p_total:=v_cant;
+end;
+--------------------------------------------
+set serveroutput on;
+variable cantidad number;
+execute sp_listado(130, :cantidad);
+
+begin
+    dbms_output.put_line(:cantidad);
+end;
+--------------------------------------------
+declare
+    v_cantidad_depto number;
+begin
+    sp_listado(30, v_cantidad_depto);
+    dbms_output.put_line('Cantidad de Deptos:' || v_cantidad_depto);
+end;
+
+-------------------------------------------------------------------------
+-- Funciones
+-- Sub Programas Almacenados / Retornan datos por naturaleza  / pueden
+-- recibir datos como parametros / Al finalizar deben retornar RETURN
+create or replace function fn_cantidad_empleados(p_depto in number)
+return number
+is
+    v_cantidad number;
+begin
+    select count(*) into v_cantidad
+    from employees where department_id = p_depto;
+    return v_cantidad;
+end;
+----------------------------------------
+-- para ejecutarla se llama desde un bloque anonimo / otra funcion / desde
+-- un procedimiento almacenado / desde una instruccion SELECT
+declare
+    v_cantidad number;
+begin
+    v_cantidad:= fn_cantidad_empleados(30);
+    dbms_output.put_line('Cantidad de Empleados:' || v_cantidad);
+end; 
+
+select department_name, fn_cantidad_empleados(department_id) 
+from departments;
+
+----------------------------------------------------------------------
+-- Paquetes
+-- Permiten organizar procedimientos almacenados, funciones, variables, constantes
+-- etc (bloques de codigo) en base aun nombre en comun
+-- Poseen una cabecera y cuerpo
+-- Todo lo declarado en cabecera sera de uso publico
+-- Todo los declarado en el cuerpo sera privado a menos que se encuentre
+-- definido en cabecera
+create or replace package pkg_hr
+is
+    function fn_cantidad_empleados(p_depto in number) return number;
+    procedure sp_listado(p_depto in number,p_total out number);
+    c_iva CONSTANT number:=0.19;
+end;
+
+create or replace package body pkg_hr
+is
+    v_datos varchar2(20):='hola mundo';
+    
+    function fn_cantidad_empleados(p_depto in number)
+    return number
+    is
+        v_cantidad number;
+    begin
+        select count(*) into v_cantidad
+        from employees where department_id = p_depto;
+        return v_cantidad;
+    end;
+   
+    procedure sp_listado(p_depto in number,p_total out number)
+    is
+        v_cant number:=0;  
+    begin
+        for x in (select * from employees where department_id= p_depto)
+        loop
+            dbms_output.put_line('Nombre:' || x.first_name);
+            v_cant:=v_cant+1;
+        end loop;
+        p_total:=v_cant;
+    end;
+    
+    function fn_hola return varchar2
+    is
+    begin
+        return 'hola mundo';
+    end;
+end;
+
+select department_name, pkg_hr.fn_cantidad_empleados(department_id)
+from departments;
+
+declare
+    v_cantidad number;
+begin
+    pkg_hr.sp_listado(60, v_cantidad);
+    dbms_output.put_line('Cantidad de Empleados:' || v_cantidad);
+end;
+-----------------------------------------------------------------------
+-- Triggers (disparadores)
+-- Efectuar un proceso cuando se realice una accion 
+-- especifica (Delete, Update, Insert)
+-- sobre una tabla
+
+create table productos(
+    idproducto number primary key,
+    nombre varchar2(45),
+    stock number
+);
+insert into productos values(1,'Platano',500);
+insert into productos values(2,'Pera', 40);
+insert into productos values(3,'Melon',10);
+select * from productos;
+
+create table ventas(
+    idBoleta number primary key,
+    idProducto number,
+    cantidad number
+);
+alter table ventas add constraint fk_vent_pro
+foreign key (idProducto) references productos(idProducto);
+
+-- cada vez que se realice una venta (Insertar) se debe 
+-- actualizar el stock de producto
+create or replace trigger trg_ventas
+after insert or delete or update on ventas
+for each row
+declare
+
+begin
+    if inserting then
+        update productos set stock=stock - :new.cantidad
+        where idproducto = :new.idproducto;
+    end if;
+    if deleting then
+        update productos set stock=stock + :old.cantidad
+        where idproducto = :old.idproducto;
+    end if;
+    if updating then
+        if :old.cantidad < :new.cantidad then
+            update productos set stock = stock - (:new.cantidad-:old.cantidad)
+            where idproducto= :old.idproducto;
+        else
+            update productos set stock = stock + (:old.cantidad-:new.cantidad)
+            where idproducto= :old.idproducto;
+        end if;
+    end if;
+end;
+
+insert into ventas values(1,3,2);
+update ventas set cantidad=cantidad-3 where idboleta=1;
+select * from productos;
+insert into ventas values(2,1,100);
+delete from ventas where idboleta=1;
+delete from ventas where idboleta=2;

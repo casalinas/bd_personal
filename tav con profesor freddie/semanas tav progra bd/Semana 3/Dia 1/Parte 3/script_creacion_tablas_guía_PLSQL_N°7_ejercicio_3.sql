@@ -1,0 +1,59 @@
+/*Tablas*/
+CREATE TABLE SOCIO
+  (RUT       NUMBER(8) NOT NULL,
+   DV        VARCHAR2(1),
+   NOMBRES   VARCHAR2(20) NOT NULL,
+   APELLIDOS VARCHAR2(20) NOT NULL,
+   CONSTRAINT PK_SOCIO PRIMARY KEY (RUT));
+
+CREATE TABLE VIDEO
+  (ID_VIDEO        NUMBER(2) NOT NULL,
+   TITULO_VIDEO    VARCHAR2(20) NOT NULL,
+    CANTIDAD_COPIAS NUMBER(2) NOT NULL,
+    CONSTRAINT PK_VIDEO PRIMARY KEY (ID_VIDEO)
+  )
+;  
+
+CREATE TABLE ARRIENDOS
+  (
+    RUT      NUMBER(8) NOT NULL,
+    ID_VIDEO NUMBER(2) NOT NULL,
+    FECHA_ARRIENDO DATE NOT NULL,
+    FECHA_DEVOLUCION DATE,
+    FECHA_ENTREGA DATE,
+    CONSTRAINT PK_ARRIENDOS PRIMARY KEY (RUT, ID_VIDEO, FECHA_ARRIENDO),
+    CONSTRAINT FK_ARRIENDOS_SOCIO FOREIGN KEY (RUT) REFERENCES SOCIO(RUT),
+    CONSTRAINT FK_ARRIENDOS_VIDEO FOREIGN KEY (ID_VIDEO) REFERENCES VIDEO(ID_VIDEO));
+    
+CREATE TABLE MULTAS_ARRIENDOS
+(rut   NUMBER(8) NOT NULL,
+ id_video NUMBER(2) NOT NULL,
+ fecha_devolucion  DATE NOT NULL,
+ fecha_entrega DATE,
+ dias_atraso   NUMBER(3) NOT NULL,
+ valor_multa   NUMBER(8),
+ CONSTRAINT PK_MULTAS_ARRIENDOS PRIMARY KEY(rut,id_video,fecha_devolucion),
+ CONSTRAINT FK_MULTAS_SOCIO FOREIGN KEY (rut) REFERENCES socio(rut),
+ CONSTRAINT FK_MULTAS_VIDEO FOREIGN KEY (id_video) REFERENCES video(id_video));
+
+/*DATOS*/
+
+Insert into Socio values(12567811,  '7',  'CESAR','FLORES');     
+Insert into Socio values(11222333,  'K',  'DANIEL','PEREZ');
+Insert into Socio values(10444555,  '6',  'JORGE','SILVA');
+INSERT INTO SOCIO VALUES(99999999, '9', 'MARIA', 'TAPIA');
+
+
+Insert into Video values(1, 'AVENGERS', 2);  
+Insert into Video values(2, 'BATTLESHIP', 4);
+Insert into Video values(3, 'WAR HORSE', 5);  
+Insert into Video values(4, 'STAR WARS', 5);
+
+
+Insert into arriendos values(12567811, 1, '10/04/2014', '12/04/2014', '12/05/2014');
+Insert into arriendos values(11222333, 3, '21/04/2014', '23/04/2014', '23/04/2014');
+Insert into arriendos values(11222333, 1, '21/04/2014', '23/04/2014', '03/05/2014');
+Insert into arriendos values(10444555, 1, '25/04/2014', '27/04/2014','');
+Insert into arriendos values(11222333, 2, '03/05/2014', '05/05/2014','05/05/2014');
+Insert into arriendos values(11222333, 2, '02/05/2014', '04/05/2014','');
+commit;

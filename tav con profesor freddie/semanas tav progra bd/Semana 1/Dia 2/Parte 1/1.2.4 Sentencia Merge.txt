@@ -1,0 +1,32 @@
+----------------------------------------------------------------------------------------------------------------------------
+
+--SENTENCIA MERGE : PERMITE MIGRAR DATOS DE UNA TABLA A OTRA
+
+----------------------------------------------------------------------------------------------------------------------------
+--PARA ÉSTE EJEMPLO CREAMOS UNA TABLA A PARTIR DE LA TABLA EMPLOYEES
+
+	CREATE TABLE COPIA_EMPLEADOS  AS  (SELECT * FROM EMPLOYEES);
+
+--BORRAMOS TODOS LOS INSERT O FILAS DE LA TABLA, CON EL FIN DE LLENARLA CON NUESTRA SENTENCIA MERGE
+
+	TRUNCATE TABLE COPIA_EMPLEADOS;
+----------------------------------------------------------------------------------------------------------------------------
+
+DECLARE
+
+BEGIN
+
+    MERGE INTO COPIA_EMPLEADOS C
+    USING EMPLOYEES E
+        ON (E.EMPLOYEE_ID = C.EMPLOYEE_ID) 	--LA BUSQUEDA DE COINCIDENCIAS SE HARÁ MEDIANTE LA PK
+    
+    WHEN MATCHED THEN  				--CUANDO HAYAN DATOS QUE COINCIDEN, ENTONCES ACTUALIZAMOS
+    	UPDATE SET 
+        C.FIRST_NAME    = E.FIRST_NAME,
+        C.LAST_NAME     = E.LAST_NAME,
+        C.DEPARTMENT_ID = E.DEPARTMENT_ID
+    WHEN NOT MATCHED THEN 			-- CUANDO NO HAYAN FILAS QUE COINCIDAN, ENTONCES INSERTAMOS
+	INSERT VALUES(E.EMPLOYEE_ID, E.FIRST_NAME, E.LAST_NAME, E.EMAIL, E.PHONE_NUMBER,E.HIRE_DATE, E.JOB_ID, E.SALARY, E.COMMISSION_PCT, E.MANAGER_ID,E.DEPARTMENT_ID);
+
+END;
+

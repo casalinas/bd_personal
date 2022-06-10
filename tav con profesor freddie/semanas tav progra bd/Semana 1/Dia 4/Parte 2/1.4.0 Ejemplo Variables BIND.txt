@@ -1,0 +1,28 @@
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+--VARIABLES BIND (VARIABLES DE ENLACE)
+--SE DEBE DEFINIR UTILIZANDO LA PALABRA "VARIABLE" Y SE LE ASIGNA UN VALOR CON LA PALABRA "EXECUTE"
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+VARIABLE ID_EMP NUMBER; --CREAMOS UNA VARIABLE BIND
+
+EXECUTE :ID_EMP := 101; --LE PODEMOS ASIGNAR UN VALOR FIJO
+
+PRINT ID_EMP;           --SOLO SI QUISIERAMOS VER EL CONTENIDO DE LA VARIABLE PODEMOS UTILIZA LA PALABRA "PRINT" PARA IMPRIMIR SU CONTENIDO
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+DECLARE
+    V_NOMBRE     VARCHAR2(20);
+    V_APELLIDO   VARCHAR2(20);
+    V_ID         NUMBER;
+BEGIN
+
+    SELECT FIRST_NAME, LAST_NAME, EMPLOYEE_ID 
+           INTO 
+           V_NOMBRE, V_APELLIDO, V_ID 
+    FROM EMPLOYEES WHERE EMPLOYEE_ID = :ID_EMP;
+    
+    DBMS_OUTPUT.PUT_LINE('NOMBRE    : ' || V_NOMBRE);
+    DBMS_OUTPUT.PUT_LINE('APELLIDO  : ' || V_APELLIDO);
+    DBMS_OUTPUT.PUT_LINE('ID        : ' || V_ID);
+
+END;

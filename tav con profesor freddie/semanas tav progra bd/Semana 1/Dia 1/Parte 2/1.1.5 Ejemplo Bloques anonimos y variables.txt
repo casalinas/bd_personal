@@ -1,0 +1,126 @@
+----------------------------------------------------------------------------------------------------------------------
+--BLOQUES ANÓNIMOS
+DECLARE
+    ---ZONA DE DECLARACION DE VARIABLES
+BEGIN
+    --ZONA DE CODIGO
+END;
+----------------------------------------------------------------------------------------------------------------------
+SET SERVEROUTPUT ON; --INICIAMOS LA CONSOLA
+----------------------------------------------------------------------------------------------------------------------
+--EJEMPLO: CREAR VARIABLES
+DECLARE
+    V_NOMBRE     VARCHAR(25)   NOT NULL  := 'JUANITO';
+    V_APELLIDO   VARCHAR2(25)  NOT NULL  := 'SIMIO';
+    V_EDAD       NUMBER(3)     NOT NULL  := 20;
+    V_ALTURA     NUMBER(3,2)   NOT NULL  := 1.70;
+    V_NACIMIENTO DATE          NOT NULL  := '03/05/2018';
+ 
+BEGIN
+
+    DBMS_OUTPUT.PUT_LINE('EL NOMBRE ES      : ' || V_NOMBRE);
+    DBMS_OUTPUT.PUT_LINE('EL APELLIDO ES    : ' || V_APELLIDO);
+    DBMS_OUTPUT.PUT_LINE('LA EDAD ES        : ' || V_EDAD);
+    DBMS_OUTPUT.PUT_LINE('LA ALTURA ES      : ' || V_ALTURA);
+    DBMS_OUTPUT.PUT_LINE('LA FECHA DE NACIEMIENTO ES: ' || V_NACIMIENTO);
+
+END;
+----------------------------------------------------------------------------------------------------------------------
+--CALCULAR EL AREA DE UN CIRCULO
+----------------------------------------------------------------------------------------------------------------------
+DECLARE
+    V_PI CONSTANT NUMBER(3,2) := 3.14;
+    V_RADIO NUMBER(10) := 20;
+    V_RESULTADO NUMBER(10);
+    
+BEGIN
+    V_RESULTADO := V_PI * (V_RADIO * V_RADIO);
+    DBMS_OUTPUT.PUT_LINE('EL AREA DEL CIRCULO DE RADIO 20 ES :' || V_RESULTADO);    
+
+END;
+
+----------------------------------------------------------------------------------------------------------------------
+--GUARDAR UN DATO DE UNA CONSULTA EN UNA VARIABLE
+----------------------------------------------------------------------------------------------------------------------
+
+DECLARE
+    V_NOMBRE VARCHAR(25);
+    
+BEGIN
+
+    SELECT 
+        FIRST_NAME INTO V_NOMBRE
+    FROM EMPLOYEES
+    WHERE EMPLOYEE_ID = 100;
+
+    DBMS_OUTPUT.PUT_LINE('EL NOMBRE ES ' || V_NOMBRE);
+END;
+----------------------------------------------------------------------------------------------------------------------
+--CAPTURA DE EXCEPCIONES
+----------------------------------------------------------------------------------------------------------------------
+DECLARE
+    ERR_CODIGO NUMBER;           --CAPTURA EL CODIGO DEL ERROR
+    ERR_MENSAJE VARCHAR(255);    --CAPTURA EL MENSAJE DE ERROR
+    
+    V_RESULTADO NUMBER(10);
+BEGIN
+    
+    SELECT 1/0 INTO V_RESULTADO  --ERROR DE DIVISION POR CERO
+    FROM DUAL;
+
+    EXCEPTION
+    WHEN OTHERS THEN
+        ERR_CODIGO := SQLCODE;   -- SQLCODE : CAPTURA SIEMPRE EL CODIGO DE ERROR
+        ERR_MENSAJE:= SQLERRM;   -- SQLERRM : CAPTURA SIEMPRE EL MENSAJE DEL ERROR
+        
+        DBMS_OUTPUT.PUT_LINE('CODIGO DEL ERROR :' || ERR_CODIGO);
+        DBMS_OUTPUT.PUT_LINE('MENSAJE ERROR :'    || ERR_MENSAJE);
+    
+END;
+
+----------------------------------------------------------------------------------------------------------------------
+--EJEMPLO BLOQUE ANONIMO Y CONSULTA SQL, CAPTURANDO MÁS DE 1 DATO
+----------------------------------------------------------------------------------------------------------------------
+DECLARE
+    V_NOMBRE VARCHAR(20);
+    V_APELLIDO VARCHAR(20);
+    V_SUELDO NUMBER(6);
+
+BEGIN
+
+    SELECT
+         FIRST_NAME,
+         LAST_NAME,
+         SALARY
+        INTO
+         V_NOMBRE,
+         V_APELLIDO,
+         V_SUELDO
+    FROM EMPLOYEES
+    WHERE EMPLOYEE_ID = 100;
+
+    DBMS_OUTPUT.PUT_LINE('EL NOMBRE ES :' || V_NOMBRE || ' ' || V_APELLIDO);
+END;
+
+----------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,52 @@
+set SERVEROUTPUT ON; 
+--1)
+create sequence sq_ra;
+
+variable anno varchar2(4);
+execute :anno:=to_char(sysdate,'yyyy');
+
+declare
+    v_situacion tramo_situacion_asig.situacion%type;
+begin
+    execute immediate 'truncate table promedio_asig_alumno';
+    execute immediate 'truncate table resumen_aprobados';
+    -- cursor explicito
+    for x in (select cod_alumno,cod_asignatura,
+              round((nota1+nota2+nota3+nota4+nota5)/5,1) as promedio
+              from nota_alumno)
+    loop
+        declare
+        begin
+            -- cursor implicito
+            select situacion into v_situacion
+            from tramo_situacion_asig 
+            where x.promedio BETWEEN promedio_inf and promedio_sup;
+        end;
+        dbms_output.put_line(x.cod_alumno || ' ' || x.cod_asignatura || ' ' || x.promedio || ' ' || v_situacion); 
+        insert into promedio_asig_alumno
+        values(x.cod_alumno,x.cod_asignatura,x.promedio,v_situacion);
+    end loop;
+    -------------------------------------------------
+    DECLARE
+    
+    BEGIN
+        for x in (select 
+                a.numrut_alumno,a.dvrut_alumno,a.pnombre_alumno,a.snombre_alumno
+                ,a.appat_alumno,a.apmat_alumno,c.sigla_curso,asig.sigla_asignatura,
+                paa.situacion_asig
+                from promedio_asig_alumno paa 
+                inner join alumno a  on paa.cod_alumno = a.cod_alumno
+                inner join asignatura asig on paa.cod_asignatura = asig.cod_asignatura
+                inner join curso c on C.cod_curso = a.cod_curso
+                where paa.situacion_asig='APROBADO')
+        loop
+            insert into resumen_aprobados
+            values(sq_ra.nextval,x.numrut_alumno,x.dvrut_alumno,x.pnombre_alumno
+            ,x.snombre_alumno,x.appat_alumno,x.apmat_alumno,x.sigla_curso,
+            x.sigla_asignatura,:anno);
+        end loop;
+    END;
+end;
+
+select * from promedio_asig_alumno;
+select * from resumen_aprobados;

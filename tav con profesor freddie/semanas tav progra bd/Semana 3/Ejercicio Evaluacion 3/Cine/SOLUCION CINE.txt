@@ -1,0 +1,276 @@
+-- ETAPA 1: CREACION DE TRIGGER
+
+-- crearemos una venta
+insert into venta values(20,0,0,0,'10/10/2016',1,4);
+-- crearemos las entradas al cine
+insert into ticket values(44,40,'D',0,4,6);
+insert into ticket values(45,41,'D',0,4,6);
+insert into ticket values(46,42,'D',0,4,6);
+-- comprarlos boletos: el trigger debe detectar que se compro
+-- un boleto en DETALLE  y recuperar el valor de la PELICULA
+-- y el DESCUENTO (SI TIENE) por el precio de la pelicula
+
+-- a) crear una funcion que permita retornar el valor de la
+--    PELICULA, tomando el IDVENTA recuperare el valor de la
+--    PELICULA
+
+create or replace function fn_obt_precio(p_idventa number)
+return number
+is
+    v_precio number;
+    v_sql varchar2(255);
+begin
+    v_sql:='select p.precio 
+            from venta v inner join peliculas p
+            on v.idpelicula=p.idpelicula where v.idventa = :p1';
+    execute immediate v_sql into v_precio using p_idventa;
+    return v_precio;
+end;
+----- probar
+select v.*, fn_obt_precio(v.idventa) from venta v;
+
+-- b) crear una funcion que retorne el PORCENTAJE de descuento
+--    que tiene el PRECIO de la pelicula
+create or replace function fn_obt_descuento(p_precio number)
+return number
+is
+    v_valor number;
+begin
+    select porcentaje into v_valor from descuentoentradas
+    where p_precio between valorentrada_min and valorentrada_max;
+    return round(p_precio * v_valor,0);
+exception
+    when others then
+        return 0;
+end;
+-- probar
+select v.*,fn_obt_precio(v.idventa) as precio_entrada
+,fn_obt_descuento( fn_obt_precio(v.idventa) ) as descuento 
+from venta v;
+
+
+-- c) creacion de TRIGGER
+
+create or replace trigger trg_detalle
+after insert or delete 
+on detalle
+for each row
+declare
+    v_precio number;
+    v_descuento number;
+    v_total number;
+begin
+    if inserting then
+        v_precio:= fn_obt_precio(:new.idventa);
+        if :new.adulto='N' then
+            v_precio:=round(v_precio/2,0);
+        end if;
+        v_descuento:= fn_obt_descuento(v_precio);
+        v_total:=v_precio-v_descuento;
+        update venta set 
+        subtotal=subtotal+v_precio,
+        descuento=descuento+v_descuento,
+        total=total+v_total
+        where idventa= :new.idventa;
+    end if;
+    if deleting then
+        v_precio:= fn_obt_precio(:old.idventa);
+        if :old.adulto='N' then
+            v_precio:=round(v_precio/2,0);
+        end if;
+        v_descuento:= fn_obt_descuento(v_precio);
+        v_total:=v_precio-v_descuento;
+        update venta set 
+        subtotal=subtotal-v_precio,
+        descuento=descuento-v_descuento,
+        total=total-v_total
+        where idventa= :old.idventa;
+    end if;
+end;
+
+select * from venta where idventa=20;
+insert into detalle values(44,20,'N');
+insert into detalle values(45,20,'S');
+insert into detalle values(46,20,'S');
+
+delete from detalle where idticket=44;
+------------------------------------------------
+-- ETAPA 2:
+
+-- recalcular las ventas
+declare
+    v_precio number;
+    v_descuento number;
+    v_total number;
+begin
+    for x in (select * from detalle)
+    loop
+        v_precio:= fn_obt_precio(x.idventa);
+        if x.adulto='N' then
+            v_precio:=round(v_precio/2,0);
+        end if;
+        v_descuento:= fn_obt_descuento(v_precio);
+        v_total:=v_precio-v_descuento;
+        update venta set 
+        subtotal=subtotal+v_precio,
+        descuento=descuento+v_descuento,
+        total=total+v_total
+        where idventa= x.idventa;  
+    end loop;
+end;
+select * from venta;
+-- resumenes
+select 
+c.nombre,p.titulo,p.idioma,count(t.idticket) as entradas
+,sum(v.total) as recaudacion
+from detalle d 
+join venta v on v.idventa = d.idventa
+join peliculas p on v.idpelicula = p.idpelicula
+join ticket t on t.idticket = d.idticket
+join cine c on c.idcine=t.cine_idcine 
+where v.fecha BETWEEN '01/01/2016' and '31/12/2016'
+group by c.nombre, p.titulo, p.idioma
+order by recaudacion desc;
+create sequence sec_resumen_cine;
+
+create or replace procedure sp_informe_resumen_cine(p_fecha date,p_fi date,p_ft date)
+is
+    cursor cur_resumen is select 
+                        c.nombre,p.titulo,p.idioma,count(t.idticket) as entradas
+                        ,sum(v.total) as recaudacion
+                        from detalle d 
+                        join venta v on v.idventa = d.idventa
+                        join peliculas p on v.idpelicula = p.idpelicula
+                        join ticket t on t.idticket = d.idticket
+                        join cine c on c.idcine=t.cine_idcine 
+                        where v.fecha BETWEEN p_fi and p_ft
+                        group by c.nombre, p.titulo, p.idioma
+                        order by recaudacion desc;
+begin
+    execute immediate 'truncate table resumen_cine';
+    for x in cur_resumen
+    loop
+        insert into resumen_cine values(sec_resumen_cine.nextval,p_fecha,x.nombre,x.titulo,
+        x.idioma,x.entradas, x.recaudacion);
+    end loop;
+end;
+
+execute sp_informe_resumen_cine(sysdate,'01/01/2016','31/12/2016');
+select * from resumen_cine;
+----------------------------------------------------------------------
+-- RESUMEN 2: resumen por pelicula
+
+create or replace function fn_adulto_pelicula(p_idpelicula number)
+return number
+is
+    v_cantidad number;
+begin
+    select count(*) into v_cantidad 
+    from detalle d join venta v on v.idventa = d.idventa
+    where v.idpelicula=p_idpelicula and d.adulto='S';
+    return v_cantidad;
+end;
+
+create or replace function fn_nino_pelicula(p_idpelicula number)
+return number
+is
+    v_cantidad number;
+begin
+    select count(*) into v_cantidad 
+    from detalle d join venta v on v.idventa = d.idventa
+    where v.idpelicula=p_idpelicula and d.adulto='N';
+    return v_cantidad;
+end;
+
+
+create or replace procedure sp_resumen_pelicula
+is 
+    cursor cur_pelicula is  select p.idpelicula, p.titulo,p.idioma,
+                        c.descripcion,sum(v.total) as recaudacion
+                        from detalle d
+                        join venta v on v.idventa = d.idventa
+                        join peliculas p on v.idpelicula = p.idpelicula
+                        join categoria c on p.idcategoria = c.idcategoria 
+                        group by p.titulo, p.idioma, c.descripcion, p.idpelicula
+                        order by p.idpelicula;
+    v_adulto number;
+    v_nino number;
+begin
+    execute immediate 'truncate table resumen_peliculas';
+    for x in cur_pelicula
+    loop
+        v_adulto:= fn_adulto_pelicula(x.idpelicula);
+        v_nino:= fn_nino_pelicula(x.idpelicula);
+        insert into resumen_peliculas values(x.idpelicula,x.titulo,x.idioma,
+        x.descripcion,v_adulto,v_nino, x.recaudacion);
+    end loop; 
+    sp_pelicula_sin_ver;
+end;
+execute sp_resumen_pelicula;
+select * from resumen_peliculas;
+-----------------------------------------------
+create or replace procedure sp_pelicula_sin_ver
+is
+    cursor cur_peli_sin_ver is  select p.titulo,v.total 
+                                from peliculas p 
+                                left join venta v on v.idpelicula = p.idpelicula
+                                where v.total is null; 
+begin
+    for x in cur_peli_sin_ver
+    loop
+        insert into errores values(sq_error.nextval,0,
+           'película ' || x.titulo ||' no tuvo movimiento de entradas',sysdate);
+    end loop;
+end;
+---------------------------------------------------------
+create or replace procedure sp_errores(p_codigo number,p_desc varchar2)
+is
+    v_sql varchar2(255);
+begin
+    v_sql:='insert into errores values(sq_error.nextval,:p1,:p2,sysdate)';
+    execute immediate v_sql using p_codigo,p_desc;
+end;
+----------------------------------------------------------
+-- paquete
+create or replace PACKAGE pkg_cine
+is
+    function fn_obt_precio(p_idventa number)return number;
+    function fn_obt_descuento(p_precio number)return number;
+    procedure sp_errores(p_codigo number,p_desc varchar2);
+end;
+
+create or replace package body pkg_cine
+is
+
+    function fn_obt_precio(p_idventa number) return number
+    is
+        v_precio number;
+        v_sql varchar2(255);
+    begin
+        v_sql:='select p.precio 
+                from venta v inner join peliculas p
+                on v.idpelicula=p.idpelicula where v.idventa = :p1';
+        execute immediate v_sql into v_precio using p_idventa;
+        return v_precio;
+    end;
+
+    function fn_obt_descuento(p_precio number) return number
+    is
+        v_valor number;
+    begin
+        select porcentaje into v_valor from descuentoentradas
+        where p_precio between valorentrada_min and valorentrada_max;
+        return round(p_precio * v_valor,0);
+    exception
+        when others then
+            return 0;
+    end;
+    
+    procedure sp_errores(p_codigo number,p_desc varchar2)
+    is
+        v_sql varchar2(255);
+    begin
+        v_sql:='insert into errores values(sq_error.nextval,:p1,:p2,sysdate)';
+        execute immediate v_sql using p_codigo,p_desc;
+    end;    
+end;

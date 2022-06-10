@@ -1,0 +1,70 @@
+--======================================================================================================
+--EJERCICIO 2
+--SE PUEDEN UTILIZAR 2 CURSORES PARA REALIZAR ESTA ACCION.
+--======================================================================================================
+
+CREATE OR REPLACE PROCEDURE DETALLE_PESOS IS
+
+CURSOR DATOS IS (SELECT C.ID_CLIENTE, F.NRO_FACTURA, ROUND(F.MONTO_TOTAL*0.012) AS PESOS_FACTURA FROM CLIENTE C 
+                 JOIN FACTURA F ON F.Id_Cliente = C.Id_Cliente);
+                
+CURSOR DATOS2 IS (SELECT C.ID_CLIENTE, SUM(ROUND(F.MONTO_TOTAL*0.012)) AS TOTAL_PESOS FROM CLIENTE C 
+                 JOIN FACTURA F ON F.Id_Cliente = C.Id_Cliente GROUP BY C.ID_CLIENTE);
+            
+
+BEGIN
+--INSERCIÓN DEL PRIMER CURSOR
+  FOR I IN DATOS LOOP
+     BEGIN
+     
+     INSERT INTO DETALLE_PESOS_COMPRAS VALUES(I.ID_CLIENTE, I.NRO_FACTURA, I.PESOS_FACTURA);
+  
+     EXCEPTION 
+     
+     WHEN DUP_VAL_ON_INDEX THEN
+        Dbms_Output.Put_Line('CLAVE PRIMARIA DUPLICADA');
+     WHEN VALUE_ERROR THEN
+        Dbms_Output.Put_Line('VALOR MAS GRANDE DE LO ESPERADO');
+     WHEN NO_DATA_FOUND THEN
+        Dbms_Output.Put_Line('NO SE ENCONTRÓ INFORMACIÓN');
+     WHEN OTHERS THEN
+        Dbms_Output.Put_Line('ERROR GENERICO');
+     END;
+  END LOOP;
+  
+  
+  --INSERCIÓN DEL SEGUNDO CURSOR
+  FOR I IN DATOS2 LOOP
+     BEGIN
+     
+     INSERT INTO TOTAL_PESOS_COMPRAS VALUES(I.ID_CLIENTE, I.TOTAL_PESOS);
+  
+     EXCEPTION 
+     
+     WHEN DUP_VAL_ON_INDEX THEN
+        Dbms_Output.Put_Line('CLAVE PRIMARIA DUPLICADA');
+     WHEN VALUE_ERROR THEN
+        Dbms_Output.Put_Line('VALOR MAS GRANDE DE LO ESPERADO');
+     WHEN NO_DATA_FOUND THEN
+        Dbms_Output.Put_Line('NO SE ENCONTRÓ INFORMACIÓN');
+     WHEN OTHERS THEN
+        Dbms_Output.Put_Line('ERROR GENERICO');
+     END;
+  END LOOP;
+  
+    
+      
+END;
+
+
+
+--======================================================================================================
+-- SE LLAMA AL PROCEDIMIENTO DESDE UN BLOQUE ANONIMO
+--======================================================================================================
+DECLARE
+
+BEGIN
+
+DETALLE_PESOS();
+
+END;

@@ -1,0 +1,559 @@
+DROP TABLE afp CASCADE CONSTRAINTS;
+DROP TABLE cliente CASCADE CONSTRAINTS;
+DROP TABLE comuna CASCADE CONSTRAINTS;
+DROP TABLE concesionaria CASCADE CONSTRAINTS;
+DROP TABLE credito CASCADE CONSTRAINTS;
+DROP TABLE empleado CASCADE CONSTRAINTS;
+DROP TABLE error_proceso CASCADE CONSTRAINTS;
+DROP TABLE error_proceso_act_foto CASCADE CONSTRAINTS;
+DROP TABLE pais CASCADE CONSTRAINTS;
+DROP TABLE region CASCADE CONSTRAINTS;
+DROP TABLE resumen_credito CASCADE CONSTRAINTS;
+DROP TABLE resumen_creditos_otorgados CASCADE CONSTRAINTS;
+DROP TABLE salud CASCADE CONSTRAINTS;
+DROP TABLE tramo_comision CASCADE CONSTRAINTS;
+DROP TABLE tramo_cuota CASCADE CONSTRAINTS;
+DROP TABLE vehiculo CASCADE CONSTRAINTS;
+DROP TABLE venta CASCADE CONSTRAINTS;
+
+--- CREATE TABLE ---
+CREATE TABLE afp (
+    cod_afp     NUMBER NOT NULL,
+    nombre      VARCHAR2(50),
+    porcentaje  NUMBER(4, 2)
+);
+
+ALTER TABLE afp ADD CONSTRAINT afp_pk PRIMARY KEY ( cod_afp );
+
+CREATE TABLE cliente (
+    run         VARCHAR2(10) NOT NULL,
+    nombres     VARCHAR2(100),
+    ap_paterno  VARCHAR2(50),
+    ap_materno  VARCHAR2(50),
+    direccion   VARCHAR2(100)
+);
+
+ALTER TABLE cliente ADD CONSTRAINT cliente_pk PRIMARY KEY ( run );
+
+CREATE TABLE comuna (
+    cod_comuna  NUMBER NOT NULL,
+    nombre      VARCHAR2(50),
+    cod_region  NUMBER NOT NULL
+);
+
+ALTER TABLE comuna ADD CONSTRAINT comuna_pk PRIMARY KEY ( cod_comuna );
+
+CREATE TABLE concesionaria (
+    cod_concesionaria  NUMBER NOT NULL,
+    direccion          VARCHAR2(100),
+    nombre             VARCHAR2(50),
+    cod_comuna         NUMBER
+);
+
+ALTER TABLE concesionaria ADD CONSTRAINT concesionaria_pk PRIMARY KEY ( cod_concesionaria );
+
+CREATE TABLE credito (
+    cod_credito   NUMBER NOT NULL,
+    monto         NUMBER,
+    cuotas        NUMBER,
+    fecha         DATE,
+    estado        CHAR(1),
+    cod_venta	  NUMBER NOT NULL
+);
+
+ALTER TABLE credito ADD CONSTRAINT credito_pk PRIMARY KEY ( cod_credito );
+
+CREATE TABLE empleado (
+    run                VARCHAR2(10) NOT NULL,
+    nombre             VARCHAR2(50),
+    ap_paterno         VARCHAR2(50),
+    ap_materno         VARCHAR2(50),
+    nacimiento         DATE,
+    celular            NUMBER(9),
+    direccion          VARCHAR2(100),
+    fecha_ingreso      DATE,
+    sueldo             NUMBER(7),
+    cod_afp            NUMBER NOT NULL,
+    cod_salud          NUMBER NOT NULL,
+    cod_concesionaria  NUMBER NOT NULL
+);
+
+ALTER TABLE empleado ADD CONSTRAINT empleado_pk PRIMARY KEY ( run );
+
+CREATE TABLE error_proceso (
+    correlativo         NUMBER NOT NULL,
+    error_actulizacion  VARCHAR2(255),
+    mensaje_error       VARCHAR2(255)
+);
+
+ALTER TABLE error_proceso ADD CONSTRAINT error_proceso_pk PRIMARY KEY ( correlativo );
+
+CREATE TABLE error_proceso_act_foto (
+    correlativo         NUMBER NOT NULL,
+    error_actulizacion  VARCHAR2(255),
+    mensaje_error       VARCHAR2(255)
+);
+
+ALTER TABLE error_proceso_act_foto ADD CONSTRAINT error_proceso_act_foto_pk PRIMARY KEY ( correlativo );
+
+CREATE TABLE pais (
+    cod_pais  NUMBER NOT NULL,
+    nombre    VARCHAR2(50)
+);
+
+ALTER TABLE pais ADD CONSTRAINT pais_pk PRIMARY KEY ( cod_pais );
+
+CREATE TABLE region (
+    cod_region  NUMBER NOT NULL,
+    nombre      VARCHAR2(50)
+);
+
+ALTER TABLE region ADD CONSTRAINT region_pk PRIMARY KEY ( cod_region );
+
+CREATE TABLE resumen_credito (
+    correlativo         NUMBER NOT NULL,
+    run_cliente         VARCHAR2(10),
+    nombre_cliente      VARCHAR2(100),
+    apellidos_clientes  VARCHAR2(100),
+    run_empleado        VARCHAR2(10),
+    nombre_empleado     VARCHAR2(100),
+    apellidos_empleado  VARCHAR2(100),
+    monto_credito       NUMBER,
+    numero_cuotas       NUMBER,
+    valor_cuota         NUMBER,
+    total_credtio       NUMBER,
+    fecha_credito       DATE
+);
+
+ALTER TABLE resumen_credito ADD CONSTRAINT resumen_credito_pk PRIMARY KEY ( correlativo );
+
+CREATE TABLE resumen_creditos_otorgados (
+    correlativo          NUMBER NOT NULL,
+    nombre_empleado      VARCHAR2(100),
+    cant_creditos        NUMBER,
+    monto_total_credito  NUMBER,
+    comision             NUMBER,
+    anno                 NUMBER(4)
+);
+
+ALTER TABLE resumen_creditos_otorgados ADD CONSTRAINT resumen_creditos_otorgados_pk PRIMARY KEY ( correlativo );
+
+CREATE TABLE salud (
+    cod_salud   NUMBER NOT NULL,
+    nombre      VARCHAR2(50),
+    porcentaje  NUMBER(4, 2)
+);
+
+ALTER TABLE salud ADD CONSTRAINT salud_pk PRIMARY KEY ( cod_salud );
+
+CREATE TABLE tramo_comision (
+    cod_tra_comi  NUMBER NOT NULL,
+    monto_min     NUMBER,
+    monto_max     NUMBER,
+    comision      NUMBER(3, 2)
+);
+
+ALTER TABLE tramo_comision ADD CONSTRAINT tramo_comision_pk PRIMARY KEY ( cod_tra_comi );
+
+CREATE TABLE tramo_cuota (
+    cod_tramo_cuota  NUMBER NOT NULL,
+    cuota_min        NUMBER,
+    cuota_max        NUMBER,
+    interes          NUMBER(3, 2)
+);
+
+ALTER TABLE tramo_cuota ADD CONSTRAINT tramo_cuota_pk PRIMARY KEY ( cod_tramo_cuota );
+
+CREATE TABLE vehiculo (
+    cod_vehiculo  NUMBER(8) NOT NULL,
+    marca         VARCHAR2(100),
+    color         VARCHAR2(20),
+    estado        CHAR(1),
+    precio        NUMBER(9),
+    cant_puerta   NUMBER(1),
+    annno         NUMBER(4),
+    cod_pais      NUMBER NOT NULL
+);
+
+ALTER TABLE vehiculo ADD CONSTRAINT vehiculo_pk PRIMARY KEY ( cod_vehiculo );
+
+CREATE TABLE venta (
+    cod_venta     NUMBER NOT NULL,
+    fecha         DATE,
+    cod_vehiculo  NUMBER(8) NOT NULL,
+    run_empleado  VARCHAR2(10) NOT NULL,
+    run_cliente   VARCHAR2(10) NOT NULL
+);
+
+ALTER TABLE venta ADD CONSTRAINT venta_pk PRIMARY KEY ( cod_venta );
+
+ALTER TABLE comuna
+    ADD CONSTRAINT comuna_region_fk FOREIGN KEY ( cod_region )
+        REFERENCES region ( cod_region );
+
+ALTER TABLE concesionaria
+    ADD CONSTRAINT concesionaria_comuna_fk FOREIGN KEY ( cod_comuna )
+        REFERENCES comuna ( cod_comuna );
+
+ALTER TABLE credito
+    ADD CONSTRAINT credito_venta_fk FOREIGN KEY ( cod_venta )
+        REFERENCES venta( cod_venta );
+/*
+ALTER TABLE credito
+    ADD CONSTRAINT credito_empleado_fk FOREIGN KEY ( run_empleado )
+        REFERENCES empleado ( run );
+*/
+ALTER TABLE empleado
+    ADD CONSTRAINT empleado_afp_fk FOREIGN KEY ( cod_afp )
+        REFERENCES afp ( cod_afp );
+
+ALTER TABLE empleado
+    ADD CONSTRAINT empleado_concesionaria_fk FOREIGN KEY ( cod_concesionaria )
+        REFERENCES concesionaria ( cod_concesionaria );
+
+ALTER TABLE empleado
+    ADD CONSTRAINT empleado_salud_fk FOREIGN KEY ( cod_salud )
+        REFERENCES salud ( cod_salud );
+
+ALTER TABLE vehiculo
+    ADD CONSTRAINT vehiculo_pais_fk FOREIGN KEY ( cod_pais )
+        REFERENCES pais ( cod_pais );
+
+ALTER TABLE venta
+    ADD CONSTRAINT venta_cliente_fk FOREIGN KEY ( run_cliente )
+        REFERENCES cliente ( run );
+
+ALTER TABLE venta
+    ADD CONSTRAINT venta_empleado_fk FOREIGN KEY ( run_empleado )
+        REFERENCES empleado ( run );
+
+ALTER TABLE venta
+    ADD CONSTRAINT venta_vehiculo_fk FOREIGN KEY ( cod_vehiculo )
+        REFERENCES vehiculo ( cod_vehiculo );
+
+drop sequence SEQ_RES_CRED;
+drop sequence SEQ_RES_CRED_OTOR;
+drop sequence seq_afp;
+drop sequence seq_salud;
+drop sequence seq_region;
+drop sequence seq_comuna;
+drop sequence seq_pais;
+drop sequence seq_vehiculo;
+drop sequence seq_tramo_cuota;
+drop sequence seq_tramo_comision;
+drop sequence seq_concesionaria;
+drop sequence seq_venta;
+drop sequence seq_credito;
+
+create sequence SEQ_RES_CRED;
+create sequence SEQ_RES_CRED_OTOR;
+create sequence seq_afp;
+create sequence seq_salud;
+create sequence seq_region;
+create sequence seq_comuna;
+create sequence seq_pais;
+create sequence seq_vehiculo;
+create sequence seq_tramo_cuota;
+create sequence seq_tramo_comision;
+create sequence seq_concesionaria;
+create sequence seq_venta;
+create sequence seq_credito;
+
+------------------------------------------------------------------------------
+--- AFP ---
+------------------------------------------------------------------------------
+INSERT INTO afp VALUES (seq_afp.nextval, 'modelo', '10,77');
+INSERT INTO afp VALUES (seq_afp.nextval, 'cuprum', '11,44');
+INSERT INTO afp VALUES (seq_afp.nextval, 'habitat', '11,27');
+INSERT INTO afp VALUES (seq_afp.nextval, 'capital', '11,44');
+INSERT INTO afp VALUES (seq_afp.nextval, 'planvital', '11,16');
+INSERT INTO afp VALUES (seq_afp.nextval, 'provida', '11,45');
+INSERT INTO afp VALUES (seq_afp.nextval, 'uno', '10,69');
+------------------------------------------------------------------------------
+--- SALUD ---
+------------------------------------------------------------------------------
+INSERT INTO salud VALUES (seq_salud.nextval, 'fonasa', 0.07);
+INSERT INTO salud VALUES (seq_salud.nextval, 'ban medica', 0.1);
+INSERT INTO salud VALUES (seq_salud.nextval, 'colmena', 0.09);
+INSERT INTO salud VALUES (seq_salud.nextval, 'consalud', 0.12);
+INSERT INTO salud VALUES (seq_salud.nextval, 'cruz blanca', 0.13);
+INSERT INTO salud VALUES (seq_salud.nextval, 'mas vida', 0.08);
+INSERT INTO salud VALUES (seq_salud.nextval, 'vida tres', 0.11);
+------------------------------------------------------------------------------
+--- REGION ---
+------------------------------------------------------------------------------
+INSERT INTO region VALUES (seq_region.nextval, 'arica y parinacota');
+INSERT INTO region VALUES (seq_region.nextval, 'tarapaca');
+INSERT INTO region VALUES (seq_region.nextval, 'antofagasta');
+INSERT INTO region VALUES (seq_region.nextval, 'atacama');
+INSERT INTO region VALUES (seq_region.nextval, 'coquimbo');
+INSERT INTO region VALUES (seq_region.nextval, 'valparaiso');
+INSERT INTO region VALUES (seq_region.nextval, 'metropolitana');
+INSERT INTO region VALUES (seq_region.nextval, 'ohiggins');
+INSERT INTO region VALUES (seq_region.nextval, 'maule');
+INSERT INTO region VALUES (seq_region.nextval, 'nuble');
+INSERT INTO region VALUES (seq_region.nextval, 'bio bio');
+INSERT INTO region VALUES (seq_region.nextval, 'la araucania');
+INSERT INTO region VALUES (seq_region.nextval, 'los rios');
+INSERT INTO region VALUES (seq_region.nextval, 'aysen');
+INSERT INTO region VALUES (seq_region.nextval, 'magallanes');
+------------------------------------------------------------------------------
+--- COMUNA ---
+------------------------------------------------------------------------------
+INSERT INTO comuna VALUES (seq_comuna.nextval,'providencia',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'santiago',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'la florida',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'independencia',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'el bosque',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'cerrillos',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'las condes',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'puente alto',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'la pintana',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'san miguel',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'granero',8);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'peumo',8);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'rengo',8);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'rancagua',8);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'quillota',6);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'la calera',6);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'san antonio',6);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'con con',6);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'viña del mar',6);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'llay llay',6);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'pudahuel',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'recoleta',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'maipu',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'huechuraba',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'la cisterna',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'lo espejo',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'la granja',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'macul',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'lo prado',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'san juaquin',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'pedro aguirre cerda',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'padre hurtado',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'maria pinto',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'quinta normal',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'san pedro',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'conchali',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'alhue',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'tiltil',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'colina',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'san bernardo',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'la reina',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'vitacura',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'peñalolén',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'pirque',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'san ramon',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'cerro navia',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'estacion central',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'renca',7);
+INSERT INTO comuna VALUES (seq_comuna.nextval,'ñuñoa',7);
+------------------------------------------------------------------------------
+--- PAIS ---
+------------------------------------------------------------------------------
+INSERT INTO pais VALUES(seq_pais.nextval,'alemania');
+INSERT INTO pais VALUES(seq_pais.nextval,'italia');
+INSERT INTO pais VALUES(seq_pais.nextval,'japon');
+INSERT INTO pais VALUES(seq_pais.nextval,'estados unidos');
+INSERT INTO pais VALUES(seq_pais.nextval,'francia');
+INSERT INTO pais VALUES(seq_pais.nextval,'australia');
+INSERT INTO pais VALUES(seq_pais.nextval,'austria');
+INSERT INTO pais VALUES(seq_pais.nextval,'belgica');
+INSERT INTO pais VALUES(seq_pais.nextval,'china');
+INSERT INTO pais VALUES(seq_pais.nextval,'corea del sur');
+INSERT INTO pais VALUES(seq_pais.nextval,'croacia');
+INSERT INTO pais VALUES(seq_pais.nextval,'españa');
+INSERT INTO pais VALUES(seq_pais.nextval,'hon kong');
+INSERT INTO pais VALUES(seq_pais.nextval,'india');
+INSERT INTO pais VALUES(seq_pais.nextval,'mexico');
+INSERT INTO pais VALUES(seq_pais.nextval,'malasia');
+INSERT INTO pais VALUES(seq_pais.nextval,'monaco');
+INSERT INTO pais VALUES(seq_pais.nextval,'paises bajos');
+INSERT INTO pais VALUES(seq_pais.nextval,'portugal');
+INSERT INTO pais VALUES(seq_pais.nextval,'reino unido');
+INSERT INTO pais VALUES(seq_pais.nextval,'rusia');
+INSERT INTO pais VALUES(seq_pais.nextval,'rumania');
+INSERT INTO pais VALUES(seq_pais.nextval,'republica checa');
+INSERT INTO pais VALUES(seq_pais.nextval,'suiza');
+INSERT INTO pais VALUES(seq_pais.nextval,'suecia');
+INSERT INTO pais VALUES(seq_pais.nextval,'taiwan');
+INSERT INTO pais VALUES(seq_pais.nextval,'emiratos arabes unidos');
+------------------------------------------------------------------------------
+--- VEHICULO ---
+------------------------------------------------------------------------------
+INSERT INTO vehiculo VALUES(seq_vehiculo.nextval,'audi','negro','N',10000000,5,2019,1);
+INSERT INTO vehiculo VALUES(seq_vehiculo.nextval,'bmw','plateado','N',15000000,3,2020,1);
+INSERT INTO vehiculo VALUES(seq_vehiculo.nextval,'ford','blanco','N',26000000,3,2020,4);
+INSERT INTO vehiculo VALUES(seq_vehiculo.nextval,'mercedes benz','rojo','N',16000000,4,2020,1);
+INSERT INTO vehiculo VALUES(seq_vehiculo.nextval,'porche','rojo','N',15500000,4,2018,1);
+INSERT INTO vehiculo VALUES(seq_vehiculo.nextval,'opel','blanco','N',8000000,4,2019,1);
+INSERT INTO vehiculo VALUES(seq_vehiculo.nextval,'volkswagen','negro','N',9050000,4,2020,1);
+INSERT INTO vehiculo VALUES(seq_vehiculo.nextval,'byd','blanco','N',3000000,5,2020,9);
+INSERT INTO vehiculo VALUES(seq_vehiculo.nextval,'jag','gris','N',3500000,3,2020,9);
+INSERT INTO vehiculo VALUES(seq_vehiculo.nextval,'hyundai','perla','N',7500000,3,2019,3);
+INSERT INTO vehiculo VALUES(seq_vehiculo.nextval,'jeep','azul','N',13000000,5,2020,4);
+INSERT INTO vehiculo VALUES(seq_vehiculo.nextval,'lamborghini','amarillo','N',30000000,5,2020,2);
+INSERT INTO vehiculo VALUES(seq_vehiculo.nextval,'fiat','verde','N',10500000,5,2018,2);
+INSERT INTO vehiculo VALUES(seq_vehiculo.nextval,'peugeot','azul principe','N',10900000,3,2019,5);
+INSERT INTO vehiculo VALUES(seq_vehiculo.nextval,'renault','blanco escarchado','N',11500000,3,2020,5);
+------------------------------------------------------------------------------
+--- TRAMO CUOTAS ---
+------------------------------------------------------------------------------
+INSERT INTO tramo_cuota VALUES (seq_tramo_cuota.nextval,4,12,0.5);
+INSERT INTO tramo_cuota VALUES (seq_tramo_cuota.nextval,13,24,0.9);
+INSERT INTO tramo_cuota VALUES (seq_tramo_cuota.nextval,25,36,1.2);
+INSERT INTO tramo_cuota VALUES (seq_tramo_cuota.nextval,37,48,1.5);
+INSERT INTO tramo_cuota VALUES (seq_tramo_cuota.nextval,49,60,1.9);
+------------------------------------------------------------------------------
+--- TRAMO COMISION ---
+------------------------------------------------------------------------------
+INSERT INTO tramo_comision VALUES (seq_tramo_comision.nextval,2300000,4000000,0.08);
+INSERT INTO tramo_comision VALUES (seq_tramo_comision.nextval,4000001,6000000,0.1);
+INSERT INTO tramo_comision VALUES (seq_tramo_comision.nextval,6000001,10000000,0.15);
+INSERT INTO tramo_comision VALUES (seq_tramo_comision.nextval,10000001,80000000,0.2);
+INSERT INTO tramo_comision VALUES (seq_tramo_comision.nextval,80000001,120000000,0.22);
+INSERT INTO tramo_comision VALUES (seq_tramo_comision.nextval,120000001,800000000,0.27);
+------------------------------------------------------------------------------
+--- CONCESIONARIA ---
+------------------------------------------------------------------------------
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'av. la frorida 25698','salazar israel',3);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'nust 98633','bruno frish',15);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'sprinfield 639','Antonio motors',40);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'futurama 9863','Rafael motors',30);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'cancha 9863','Juan delgado',2);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'nameco 1505','Jesus',20);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'one 896','motors Angel',6);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'Avenida Lorem ipsum 0325','motors Torres',13);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'Calle San Marcos Nº 531','4 ruedas',35);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'Esmeralda N° 340 Piso 11 Ala Sue','Motors Captura',9);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'Galleguillos Lorca 1451','coaches autos',5);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'Rodríguez N°669','one car',25);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'Calle Eduardo de La Barra N° 480','no2',35);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'Calle Blanco N° 625','cup',17);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'Santo Domingo N° 566','alpha motors',27);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'Santa californiaN° 5676','Motors Techs',37);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'Uno Norte N° 954','first',7);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'Carrera 430','save car',8);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'Barros Arana 492','4talent',9);
+INSERT INTO concesionaria VALUES (seq_concesionaria.nextval,'Lynch N° 424','el dorado',3);
+------------------------------------------------------------------------------
+--- EMPLEADO ---
+------------------------------------------------------------------------------
+INSERT INTO empleado VALUES ('11111111-1','maria jose','diaz','perez',to_date('01/05/57','DD/MM/YYYY'),null,'los pomelos 1234',to_date('01/07/96','DD/MM/YYYY'),'901000','4','1','10');
+INSERT INTO empleado VALUES ('22222222-2','ivan pedro','barros','aravena',to_date('09/01/68','DD/MM/YYYY'),'966552356','los tomates 9860',to_date('01/09/83','DD/MM/YYYY'),'1140000','3','3','5');
+INSERT INTO empleado VALUES ('33333333-3','maria jose','acuña','tobar',to_date('01/08/96','DD/MM/YYYY'),'968236120','los arrallanes 147',to_date('01/05/16','DD/MM/YYYY'),'350000','2','5','6');
+INSERT INTO empleado VALUES ('44444444-4','belen esperanza','fuentes','gutierrez',to_date('26/12/66','DD/MM/YYYY'),null,'los militares 9600',to_date('01/08/90','DD/MM/YYYY'),'1356000','5','7','15');
+INSERT INTO empleado VALUES ('55555555-5','matias armando','flores','diaz',to_date('11/01/86','DD/MM/YYYY'),'923000569','ovalle 968',to_date('01/01/06','DD/MM/YYYY'),'856000','5','1','17');
+INSERT INTO empleado VALUES ('66666666-6','paula andrea','guerra','barriga',to_date('01/05/70','DD/MM/YYYY'),'987850020','el popular 91',to_date('01/02/90','DD/MM/YYYY'),'500000','7','1','18');
+INSERT INTO empleado VALUES ('77777777-7','valentina','aravena','quiteros',to_date('20/10/75','DD/MM/YYYY'),'903655556','dignidad 2019',to_date('01/10/94','DD/MM/YYYY'),'963000','6','4','10');
+INSERT INTO empleado VALUES ('99999999-9','marcos antonio','valenzuela','mejias',to_date('25/03/80','DD/MM/YYYY'),'925333096','coquimbo 2058',to_date('01/07/98','DD/MM/YYYY'),'1020000','4','2','8');
+INSERT INTO empleado VALUES ('11234567-9','jose carlos','sepulveda','ramos',to_date('15/07/2000','DD/MM/YYYY'),null,'gabriela 638',to_date('01/07/2018','DD/MM/YYYY'),'1568000','1','6','6');
+INSERT INTO empleado VALUES ('22456789-3','carolina nicole','collao','moncada',to_date('04/02/95','DD/MM/YYYY'),'925513505','san antonio 19',to_date('01/03/13','DD/MM/YYYY'),'350000','2','7','3');
+INSERT INTO empleado VALUES ('33987654-2','karina andrea','alvarez','rivera',to_date('17/09/83','DD/MM/YYYY'),null,'san miguel 6090',to_date('01/06/01','DD/MM/YYYY'),'450000','3','1','20');
+INSERT INTO empleado VALUES ('88888888-8','elizabeth','manzo','muñoz',to_date('31/08/90','DD/MM/YYYY'),null,'las cruces 89',to_date('01/12/08','DD/MM/YYYY'),'450000','6','2','4');
+------------------------------------------------------------------------------
+--- CLIENTE ---
+------------------------------------------------------------------------------
+INSERT INTO cliente VALUES ('12887899-7','Martin','Farias','Yañez','Av la florida #66645');
+INSERT INTO cliente VALUES ('11008887-3','Andres','Ortega','Marambio','Camino Herrera 44425');
+INSERT INTO cliente VALUES ('9888653-3','Luis','Lara','Jara','Las Peras 445, Dep.21');
+INSERT INTO cliente VALUES ('9888008-2','Jose','Gonzales','Tapia','Marcoleta Rojas #033');
+INSERT INTO cliente VALUES ('10887441-2','Ramon','Campos','Rivas','Nuevas Naves #1120, Dep.44');
+INSERT INTO cliente VALUES ('10774544-0','Jaime','Soto','Silva','Av los torpedos #443');
+INSERT INTO cliente VALUES ('11993736-0','Martin','Campos','Soto','Psje Luna #223');
+INSERT INTO cliente VALUES ('10999233-7','Dario','Damasco','Fuentes','Psje Martines #2221');
+INSERT INTO cliente VALUES ('9113351-K','Yasmin','Salas','Silva','Municipal #3332');
+INSERT INTO cliente VALUES ('22008898-0','Luisa','Soto','Silva','Fernando Lira #1001');
+INSERT INTO cliente VALUES ('23888836-1','Pedro','Ramirez','Rojas','Martin de Rosas #662');
+INSERT INTO cliente VALUES ('11088815-K','Carlos','Campaña','Veliz','Psje Javier Lopez #988, Dep.77');
+INSERT INTO cliente VALUES ('12434688-7','Esteban','Marin','Zuñiga','Jasmin #666');
+INSERT INTO cliente VALUES ('11888737-4','Luisa','Yañez','Ortega','Los Navios #2212');
+INSERT INTO cliente VALUES ('11211768-K','Ramon','Parra','Bulnes','Psje. Los Menores #299');
+INSERT INTO cliente VALUES ('9111975-5','Carlos','Carmona','Valdez','La Romana #2209');
+INSERT INTO cliente VALUES ('10992862-7','Daniel','Tapia','Silva','Av Jupiter #111,Dep. 32');
+INSERT INTO cliente VALUES ('10889123-1','Ramon','Fuentes','Yañez','Los Tamarindos #1199');
+INSERT INTO cliente VALUES ('11814412-1','Martina','Perez','Perez','Psje Maipu #4449');
+INSERT INTO cliente VALUES ('10955476-8','Alejadra','Navarro','Rivas','Olivos 7788');
+INSERT INTO cliente VALUES ('9224334-0','Ana','Solis','Salas','Av Recoleta #339');
+INSERT INTO cliente VALUES ('9117644-K','Patricia','Marquez','Islas','Los Linderos #1197');
+INSERT INTO cliente VALUES ('10885333-1','Loreto','Tapia','Campos','La Naranja #1183');
+INSERT INTO cliente VALUES ('13122356-5','Pedro','Herrera','Martinez','Av Mineria Rivas #0992');
+INSERT INTO cliente VALUES ('10992110-1','Daniel','Navarro','Solis','Av Las Nieves #1122');
+INSERT INTO cliente VALUES ('9116441-7','Hugo','Jara','Jaramillo','Las Mirandas #1199');
+INSERT INTO cliente VALUES ('10888367-4','Samuel','Osman','Tapia','Jose Manuel Tapia #44');
+INSERT INTO cliente VALUES ('17777522-7','Bartolome','Solis','Seguel','Tapia Romero #222');
+INSERT INTO cliente VALUES ('15667887-5','Xinena','Ramirez','Campos','La Marina #100');
+INSERT INTO cliente VALUES ('18993355-5','Pedro','Muñoz','Candia','Los Diamantes #2212');
+INSERT INTO cliente VALUES ('19663411-7','Manuel','Rivas','Zambrano','Av Quilpue #1192');
+INSERT INTO cliente VALUES ('17662255-4','Raquel','Salamanca','Tapia','Psje Torres #12');
+------------------------------------------------------------------------------
+--- VENTA ---
+------------------------------------------------------------------------------
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-10-11','YYYY-MM-DD'),1,'11111111-1','12887899-7');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-11-12','YYYY-MM-DD'),2,'11234567-9','11008887-3');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-09-02','YYYY-MM-DD'),3,'22222222-2','9888653-3');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-09-15','YYYY-MM-DD'),4,'22456789-3','9888008-2');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-10-18','YYYY-MM-DD'),5,'33333333-3','10887441-2');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-10-14','YYYY-MM-DD'),6,'33987654-2','10774544-0');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-08-11','YYYY-MM-DD'),7,'44444444-4','11993736-0');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-08-21','YYYY-MM-DD'),8,'55555555-5','10999233-7');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-08-21','YYYY-MM-DD'),9,'66666666-6','9113351-K');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-10-11','YYYY-MM-DD'),10,'77777777-7','22008898-0');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-10-11','YYYY-MM-DD'),11,'88888888-8','23888836-1');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-07-23','YYYY-MM-DD'),12,'99999999-9','11088815-K');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-03-11','YYYY-MM-DD'),13,'11234567-9','12434688-7');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-08-23','YYYY-MM-DD'),15,'22456789-3','11888737-4');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-10-11','YYYY-MM-DD'),1,'33987654-2','11211768-K');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-08-11','YYYY-MM-DD'),2,'55555555-5','9111975-5');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-04-09','YYYY-MM-DD'),3,'77777777-7','10992862-7');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-08-09','YYYY-MM-DD'),4,'99999999-9','10889123-1');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-05-11','YYYY-MM-DD'),5,'11111111-1','11814412-1');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-01-10','YYYY-MM-DD'),6,'22222222-2','10955476-8');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-08-13','YYYY-MM-DD'),7,'33333333-3','9224334-0');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-10-21','YYYY-MM-DD'),8,'44444444-4','9117644-K');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-12-12','YYYY-MM-DD'),9,'66666666-6','10885333-1');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-12-20','YYYY-MM-DD'),10,'88888888-8','13122356-5');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-05-24','YYYY-MM-DD'),15,'99999999-9','10992110-1');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-05-23','YYYY-MM-DD'),14,'55555555-5','9116441-7');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-03-01','YYYY-MM-DD'),13,'22456789-3','10888367-4');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-03-11','YYYY-MM-DD'),12,'11111111-1','17777522-7');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-10-05','YYYY-MM-DD'),11,'66666666-6','15667887-5');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-03-06','YYYY-MM-DD'),10,'22222222-2','18993355-5');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-10-02','YYYY-MM-DD'),6,'11111111-1','19663411-7');
+INSERT INTO venta VALUES (seq_venta.nextval, to_date('2019-07-11','YYYY-MM-DD'),8,'88888888-8','17662255-4');
+------------------------------------------------------------------------------
+--- CREDITO ---
+------------------------------------------------------------------------------
+INSERT INTO credito VALUES (seq_credito.nextval,'10000000','16',to_date('11/10/19','DD/MM/YYY'),'P','1');
+INSERT INTO credito VALUES (seq_credito.nextval,'15000000','43',to_date('12/11/19','DD/MM/YYY'),'P','2');
+INSERT INTO credito VALUES (seq_credito.nextval,'26000000','36',to_date('02/09/19','DD/MM/YYY'),'P','3');
+INSERT INTO credito VALUES (seq_credito.nextval,'16000000','48',to_date('15/09/19','DD/MM/YYY'),'P','4');
+INSERT INTO credito VALUES (seq_credito.nextval,'15500000','14',to_date('18/10/19','DD/MM/YYY'),'P','5');
+INSERT INTO credito VALUES (seq_credito.nextval,'8000000','59',to_date('14/10/19','DD/MM/YYY'),'P','6');
+INSERT INTO credito VALUES (seq_credito.nextval,'9050000','28',to_date('11/08/19','DD/MM/YYY'),'P','7');
+INSERT INTO credito VALUES (seq_credito.nextval,'3000000','42',to_date('21/08/19','DD/MM/YYY'),'P','8');
+INSERT INTO credito VALUES (seq_credito.nextval,'3500000','15',to_date('21/08/19','DD/MM/YYY'),'P','9');
+INSERT INTO credito VALUES (seq_credito.nextval,'7500000','52',to_date('11/10/19','DD/MM/YYY'),'P','10');
+INSERT INTO credito VALUES (seq_credito.nextval,'13000000','35',to_date('11/10/19','DD/MM/YYY'),'P','11');
+INSERT INTO credito VALUES (seq_credito.nextval,'30000000','58',to_date('23/07/19','DD/MM/YYY'),'P','12');
+INSERT INTO credito VALUES (seq_credito.nextval,'10500000','26',to_date('11/03/19','DD/MM/YYY'),'P','13');
+INSERT INTO credito VALUES (seq_credito.nextval,'11500000','51',to_date('23/08/19','DD/MM/YYY'),'P','14');
+INSERT INTO credito VALUES (seq_credito.nextval,'10000000','44',to_date('11/10/19','DD/MM/YYY'),'P','15');
+INSERT INTO credito VALUES (seq_credito.nextval,'15000000','16',to_date('11/08/19','DD/MM/YYY'),'P','16');
+INSERT INTO credito VALUES (seq_credito.nextval,'26000000','31',to_date('09/04/19','DD/MM/YYY'),'P','17');
+INSERT INTO credito VALUES (seq_credito.nextval,'16000000','40',to_date('09/08/19','DD/MM/YYY'),'P','18');
+INSERT INTO credito VALUES (seq_credito.nextval,'15500000','11',to_date('11/05/19','DD/MM/YYY'),'P','19');
+INSERT INTO credito VALUES (seq_credito.nextval,'8000000','55',to_date('10/01/19','DD/MM/YYY'),'P','20');
+INSERT INTO credito VALUES (seq_credito.nextval,'9050000','30',to_date('13/08/19','DD/MM/YYY'),'P','21');
+INSERT INTO credito VALUES (seq_credito.nextval,'3000000','30',to_date('21/10/19','DD/MM/YYY'),'P','22');
+INSERT INTO credito VALUES (seq_credito.nextval,'3500000','34',to_date('12/12/19','DD/MM/YYY'),'P','23');
+INSERT INTO credito VALUES (seq_credito.nextval,'7500000','20',to_date('20/12/19','DD/MM/YYY'),'P','24');
+INSERT INTO credito VALUES (seq_credito.nextval,'11500000','31',to_date('24/05/19','DD/MM/YYY'),'P','25');
+INSERT INTO credito VALUES (seq_credito.nextval,'10900000','13',to_date('23/05/19','DD/MM/YYY'),'P','26');
+INSERT INTO credito VALUES (seq_credito.nextval,'10500000','28',to_date('01/03/19','DD/MM/YYY'),'P','27');
+INSERT INTO credito VALUES (seq_credito.nextval,'30000000','8',to_date('11/03/19','DD/MM/YYY'),'P','28');
+INSERT INTO credito VALUES (seq_credito.nextval,'13000000','11',to_date('05/10/19','DD/MM/YYY'),'P','29');
+INSERT INTO credito VALUES (seq_credito.nextval,'7500000','26',to_date('06/03/19','DD/MM/YYY'),'P','30');
+INSERT INTO credito VALUES (seq_credito.nextval,'8000000','45',to_date('02/10/19','DD/MM/YYY'),'P','31');
+INSERT INTO credito VALUES (seq_credito.nextval,'3000000','50',to_date('11/07/19','DD/MM/YYY'),'P','32');

@@ -1,0 +1,44 @@
+SET SERVEROUTPUT ON;
+---------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------
+---PROCEDIMIENTO PARA ACTUALIZAR SUELDO
+
+CREATE OR REPLACE PROCEDURE ACTUALIZAR_SUELDO IS
+BEGIN
+    --ACTUALIZAMOS EL SUELDO DEL EMPLEADO 150
+    UPDATE EMPLOYEES SET SALARY = 3000
+    WHERE EMPLOYEE_ID = 150;
+
+END;
+
+EXECUTE ACTUALIZAR_SUELDO;
+
+--PARA REVISAR EL CAMBIO, HACEMOS UN SELECT
+SELECT * FROM EMPLOYEES WHERE EMPLOYEE_ID = 150;
+
+
+---------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------
+
+--PROCECEDIMIENTO QUE RECIBE 1 PARAMETRO Y RETORNA 1 RESULTADO
+
+CREATE OR REPLACE PROCEDURE OBTENER_DIA (FECHA IN DATE, DIA OUT NUMBER) IS
+
+BEGIN
+    --SE EXTRAE EL DÍA DE LA FECHA INGRESADA POR PARÁMETRO
+    DIA := TO_CHAR(FECHA,'DD');
+
+END;
+
+
+DECLARE
+    V_RESULTADO NUMBER;
+BEGIN
+    --CAPTURAMOS EL RETORNO DEL PROCEDIMIENTO
+    OBTENER_DIA(SYSDATE, V_RESULTADO);
+    DBMS_OUTPUT.PUT_LINE('EL DIA ES : ' || V_RESULTADO);
+END;
+
+
+---------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------

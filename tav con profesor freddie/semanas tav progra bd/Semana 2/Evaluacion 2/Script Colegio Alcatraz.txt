@@ -1,0 +1,680 @@
+drop table tramo_promedio;
+drop table tramo_asistencia;
+drop table asistencia;
+drop table profesor;
+drop table notas;
+drop table errores;
+drop table estado_repro;
+drop table mensualidad;
+drop table cursos_aprobados;
+drop table asignatura;
+drop table resumen_situacion;
+drop table mes;
+drop table alumno;
+drop table apoderado;
+drop table curso;
+drop table ASIGNATURAS_PENDIENTES;
+
+CREATE TABLE alumno (
+    cod_alumno         INTEGER NOT NULL,
+    numrut             INTEGER NOT NULL,
+    dvrut              VARCHAR2(1) NOT NULL,
+    pnombre            VARCHAR2(25) NOT NULL,
+    snombre            VARCHAR2(25),
+    apellidopat        VARCHAR2(25) NOT NULL,
+    apellidomat        VARCHAR2(25) NOT NULL,
+    apoderado_numrut   INTEGER NOT NULL,
+    curso_codigo       INTEGER NOT NULL,
+    porc_apro          number,
+    porc_repro         number
+);
+
+ALTER TABLE alumno ADD CONSTRAINT alumno_pk PRIMARY KEY ( cod_alumno );
+
+CREATE TABLE apoderado (
+    numrut        INTEGER NOT NULL,
+    dvrut         VARCHAR2(1) NOT NULL,
+    pnombre       VARCHAR2(25) NOT NULL,
+    snombre       VARCHAR2(25) NOT NULL,
+    apellidopat   VARCHAR2(25) NOT NULL,
+    apellidomat   VARCHAR2(25) NOT NULL,
+    direccion     VARCHAR2(60),
+    fono          VARCHAR2(15) NOT NULL,
+    edad          INTEGER NOT NULL
+);
+
+ALTER TABLE apoderado ADD CONSTRAINT apoderado_pk PRIMARY KEY ( numrut );
+
+CREATE TABLE asignatura (
+    cod_asignatura    INTEGER NOT NULL,
+    sigla             VARCHAR2(7) NOT NULL,
+    nombre            VARCHAR2(30) NOT NULL,
+    observacion       VARCHAR2(30) NOT NULL,
+    horas_semanales   INTEGER NOT NULL
+);
+
+ALTER TABLE asignatura ADD CONSTRAINT asignatura_pk PRIMARY KEY ( cod_asignatura );
+
+CREATE TABLE asistencia (
+    cod_alumno   INTEGER NOT NULL,
+    porcentaje   NUMBER NOT NULL,
+    anno         INTEGER NOT NULL,
+    idmes        INTEGER NOT NULL
+);
+
+CREATE TABLE curso (
+    codigo        INTEGER NOT NULL,
+    descripcion   VARCHAR2(25) NOT NULL,
+    sigla         VARCHAR2(10) NOT NULL
+);
+
+ALTER TABLE curso ADD CONSTRAINT curso_pk PRIMARY KEY ( codigo );
+
+CREATE TABLE errores (
+    cod            INTEGER NOT NULL,
+    codigo_error   INTEGER NOT NULL,
+    mensaje        VARCHAR2(120) NOT NULL,
+    fecha_error    DATE NOT NULL
+);
+
+ALTER TABLE errores ADD CONSTRAINT errores_pk PRIMARY KEY ( cod );
+
+CREATE TABLE estado_repro (
+    cod_alumno        INTEGER NOT NULL,
+    pnombre           VARCHAR2(25) NOT NULL,
+    promedio          NUMBER,
+    porc_asistencia   NUMBER NOT NULL
+);
+
+ALTER TABLE estado_repro ADD CONSTRAINT estado_repro_pk PRIMARY KEY ( cod_alumno );
+
+CREATE TABLE mensualidad (
+    cod_alumno   INTEGER NOT NULL,
+    idmes        INTEGER NOT NULL,
+    valor        INTEGER NOT NULL,
+    estado       VARCHAR2(12) NOT NULL
+);
+
+ALTER TABLE mensualidad ADD CONSTRAINT mensualidad_pk PRIMARY KEY ( idmes,
+                                                                    cod_alumno );
+
+CREATE TABLE mes (
+    idmes         INTEGER NOT NULL,
+    descripcion   VARCHAR2(30) NOT NULL
+);
+
+ALTER TABLE mes ADD CONSTRAINT mes_pk PRIMARY KEY ( idmes );
+
+CREATE TABLE notas (
+    cod_alumno       INTEGER NOT NULL,
+    cod_asignatura   INTEGER NOT NULL,
+    promedio         NUMBER NOT NULL,
+    situacion        CHAR(1) NOT NULL
+);
+
+CREATE TABLE profesor (
+    cod_profesor   INTEGER NOT NULL,
+    numrut         INTEGER NOT NULL,
+    dvrut          VARCHAR2(1) NOT NULL,
+    pnombre        VARCHAR2(25) NOT NULL,
+    snombre        VARCHAR2(25) NOT NULL,
+    apellidopat    VARCHAR2(25) NOT NULL,
+    apellidomat    VARCHAR2(25) NOT NULL,
+    contratado     DATE NOT NULL,
+    curso_codigo   INTEGER NOT NULL
+);
+
+ALTER TABLE profesor ADD CONSTRAINT profesor_pk PRIMARY KEY ( cod_profesor );
+
+CREATE TABLE resumen_situacion (
+    cod_alumno        INTEGER NOT NULL,
+    pnombre           VARCHAR2(25),
+    apellidopat       VARCHAR2(25),
+    promedio          NUMBER,
+    porc_asistencia   NUMBER,
+    estado_promedio   VARCHAR2(30),
+    estado_asisten    VARCHAR2(45),
+    situacion         VARCHAR2(30)
+);
+
+ALTER TABLE resumen_situacion ADD CONSTRAINT res_situ_pk PRIMARY KEY ( cod_alumno );
+
+CREATE TABLE tramo_asistencia (
+    id_tramo      INTEGER NOT NULL,
+    por_min       NUMBER NOT NULL,
+    por_max       NUMBER NOT NULL,
+    descripcion   VARCHAR2(45) NOT NULL
+);
+
+ALTER TABLE tramo_asistencia ADD CONSTRAINT tramo_asistencia_pk PRIMARY KEY ( id_tramo );
+
+CREATE TABLE CURSOS_APROBADOS(
+    COD_ALUMNO NUMBER(3),
+    SIGLA      VARCHAR2(7) NOT NULL,
+    NOMBRE VARCHAR2(30) NOT NULL,
+    PROMEDIO NUMBER(3,1) NOT NULL    
+);
+
+CREATE TABLE tramo_promedio (
+    id_tramo      INTEGER NOT NULL,
+    prom_minimo   NUMBER NOT NULL,
+    prom_maximo   NUMBER NOT NULL,
+    estado        VARCHAR2(30) NOT NULL
+);
+
+ALTER TABLE tramo_promedio ADD CONSTRAINT tramo_situacion_pk PRIMARY KEY ( id_tramo );
+
+create table ASIGNATURAS_PENDIENTES(
+  COD_ALUMNO NUMBER,
+  SIGLA VARCHAR2(10),
+  ASIGNATURA VARCHAR2(60),
+  PROMEDIO NUMBER(2,1)
+);
+
+ALTER TABLE alumno
+    ADD CONSTRAINT alum_apod_fk FOREIGN KEY ( apoderado_numrut )
+        REFERENCES apoderado ( numrut );
+
+ALTER TABLE alumno
+    ADD CONSTRAINT alumno_curso_fk FOREIGN KEY ( curso_codigo )
+        REFERENCES curso ( codigo );
+
+ALTER TABLE asistencia
+    ADD CONSTRAINT asist_alumno_fk FOREIGN KEY ( cod_alumno )
+        REFERENCES alumno ( cod_alumno );
+
+ALTER TABLE asistencia
+    ADD CONSTRAINT asist_mes_fk FOREIGN KEY ( idmes )
+        REFERENCES mes ( idmes );
+
+ALTER TABLE mensualidad
+    ADD CONSTRAINT mensualidad_alumno_fk FOREIGN KEY ( cod_alumno )
+        REFERENCES alumno ( cod_alumno );
+
+ALTER TABLE mensualidad
+    ADD CONSTRAINT mensualidad_mes_fk FOREIGN KEY ( idmes )
+        REFERENCES mes ( idmes );
+
+ALTER TABLE notas
+    ADD CONSTRAINT notas_alum_fk FOREIGN KEY ( cod_alumno )
+        REFERENCES alumno ( cod_alumno );
+
+ALTER TABLE notas
+    ADD CONSTRAINT notas_asig_fk FOREIGN KEY ( cod_asignatura )
+        REFERENCES asignatura ( cod_asignatura );
+
+ALTER TABLE profesor
+    ADD CONSTRAINT profesor_curso_fk FOREIGN KEY ( curso_codigo )
+        REFERENCES curso ( codigo );
+
+-------------------------------------------------------------------------
+
+---------------------------------------------------------------------
+-- INSTRUCCIONES SELECT
+---------------------------------------------------------------------
+insert into mes values(1,'ENERO');
+insert into mes values(2,'FEBRERO');
+insert into mes values(3,'MARZO');
+insert into mes values(4,'ABRIL');
+insert into mes values(5,'MAYO');
+insert into mes values(6,'JUNIO');
+insert into mes values(7,'JULIO');
+insert into mes values(8,'AGOSTO');
+insert into mes values(9,'SEPTIEMBRE');
+insert into mes values(10,'OCTUBRE');
+insert into mes values(11,'NOVIEMBRE');
+insert into mes values(12,'DICIEMBRE');
+---------------------------------------
+insert into TRAMO_PROMEDIO values(1,3,3.9,'Insuficiente');
+insert into TRAMO_PROMEDIO values(2,4,4.5,'Suficiente');
+insert into TRAMO_PROMEDIO values(3,4.6,5.3,'Bueno');
+insert into TRAMO_PROMEDIO values(4,5.4,7,'Muy Bueno');
+------------------------------------------------
+insert into TRAMO_ASISTENCIA values(1,40,55,'Baja');
+insert into TRAMO_ASISTENCIA values(2,56,68,'Media');
+insert into TRAMO_ASISTENCIA values(3,69,90,'Alta');
+------------------------------------------------
+insert into curso values(1,'Primero Medio A','1A');
+insert into curso values(2,'Primero Medio B','1B');
+insert into curso values(3,'Segundo Medio A','2A');
+insert into curso values(4,'Segundo Medio B','2B');
+insert into curso values(5,'Tercero Medio A','3A');
+insert into curso values(6,'Tercero Medio B','3B');
+insert into curso values(7,'Cuarto Medio A','4A');
+insert into curso values(8,'Cuarto Medio B','4B');
+insert into curso values(9,'Cuarto Medio C','4C');
+----------------------------------------------------
+insert into profesor values(1,12567765,'1','OSCAR','MANUEL','SALINAS','ORTEGA','11/07/1997',1);
+insert into profesor values(2,11787099,'2','MARTIN','SAMUEL','SAAVEDRA','LARA','09/06/2000',2);
+insert into profesor values(3,11202321,'3','MARCELO','JOSE','ROBLES','LIRA','01/07/1997',3);
+insert into profesor values(4,09767667,'2','DANIELA','ALEJANDRA','FERRER','TORO','06/01/1995',4);
+insert into profesor values(5,10566589,'1','CAMILO','SAMUEL','FERDANDEZ','OTAROLA','03/02/2010',5);
+insert into profesor values(6,12889765,'4','DANIEL','HUMBERTO','RAMIREZ','FUENTES','01/03/1999',6);
+insert into profesor values(7,10109887,'2','CAMILA','BARBARA','JORQUERA','TAPIA','24/02/2000',7);
+insert into profesor values(8,11099009,'K','MARTINA','PATRICIA','RAMIREZ','ULLOA','04/07/2001',8);
+insert into profesor values(9,10998772,'K','FERMIN','SALVADOR','CORREA','GUTIERREZ','01/03/2001',9);
+-----------------------------------------------------------------
+insert into ASIGNATURA values(10,'TEC','Tecnologia','Laboratorio Computacion', 5);
+insert into ASIGNATURA values(20,'MED','Medio Ambiente','Salidas de Terreno', 4);
+insert into ASIGNATURA values(30,'LYC','Lenguaje y comunicacion','Laboratorio de lenguas', 5);
+insert into ASIGNATURA values(40,'EXC','Expresion Corporal','Gimnacio del Liceo', 4);
+insert into ASIGNATURA values(50,'MAT','Matematicas','Laboratorio Computacion', 6);
+insert into ASIGNATURA values(60,'HIS','Historia','Sala Clases', 4);
+insert into ASIGNATURA values(70,'COE','Comunicacion Oral y Escrita','Sala Clases', 6);
+insert into ASIGNATURA values(80,'ING','Ingles','Laboratorio Computacion', 6);
+-----------------------------------------------------------------
+insert into APODERADO values(12654456,'K','Marcos','Antonio','Faundez','Lara','Los paltos #4454','228788879',45);
+insert into APODERADO values(11800500,'1','Martin','Alfonso','Tapia','Contreras','Av. Colchahua #4433','09876545',56);
+insert into APODERADO values(10890887,'2','Andrea','Carolina','Carrasco','Segovia','Casa Matriz #113','225434543',60);
+insert into APODERADO values(11434504,'3','Marcela','Alejandra','Tapia','Carrasco','Pasaje Navidad #608','227787676',47);
+insert into APODERADO values(16767300,'K','Daniel','Marcelo','Peralta','Costas','Av. Ricado Lyon #1233','227655868',36);
+insert into APODERADO values(10233231,'1','Hector','Cesar','Pineda','Farias','Los Castaños #44','096765454',60);
+insert into APODERADO values(13765666,'8','Marcia','Antonia','Diaz','Valdez','Av. Independencia #223','22322344',35);
+insert into APODERADO values(10998998,'4','Carmen','Ivonne','Perez','Diaz','Teniente Miranda #1209','223455549',53);
+insert into APODERADO values(11764454,'7','Ramiro','Jose','Toro','Candia','Union Nacional #1112','098876711',63);
+insert into APODERADO values(18998762,'3','Nadia','Corina','Correa','Fuentes','Las Guindas #2108','09564434',34);
+---------------------------------------------------------------------------------------
+insert into alumno values(1,11435432,'K','Juan','Manuel','Pineda','Concha',10233231,1,0,0);
+insert into alumno values(2,19654432,'1','Dario','Antonio','Tapia','Ramirez',11800500,1,0,0);
+insert into alumno values(3,20844341,'3','Francisco','Jose','Alvarado','Tapia',11434504,2,0,0);
+insert into alumno values(4,21886535,'5','Carmen','Maria','Monarde','Carrasco',10890887,2,0,0);
+insert into alumno values(5,18776663,'8','Karina','Constanza','Peralta','Diaz',16767300,1,0,0);
+insert into alumno values(6,19887640,'9','Martina','Manuela','Faundez','Candia',12654456,3,0,0);
+insert into alumno values(7,19565590,'4','David','Miguel','Toro','Diaz',13765666,1,0,0);
+insert into alumno values(8,21889808,'5','Oscar','Salvador','Jorquera','Perez',10998998,1,0,0);
+insert into alumno values(9,20115401,'8','Daniela','Carmen','Toro','Fuentes',11764454,3,0,0);
+insert into alumno values(10,21554353,'K','Jaime','Jose','Lira','Correa',18998762,3,0,0);
+insert into alumno values(11,18760097,'6','Carlos','Camilo','Monarde','Carrasco',10890887,1,0,0);
+insert into alumno values(12,22452301,'8','Daniela','Josefa','Pineda','Concha',10233231,1,0,0);
+insert into alumno values(13,23998997,'0','Susana','Alejandra','Toro','Diaz',13765666,2,0,0);
+insert into alumno values(14,19909901,'2','Manuel','Alejandro','Toro','Concha',11764454,4,0,0);
+insert into alumno values(15,20889856,'3','Ramon','Sebastian','Faundez','Candia',12654456,4,0,0);
+insert into alumno values(16,21665657,'9','Daniela','Martina','Tapia','Ramirez',11800500,5,0,0);
+insert into alumno values(17,21998765,'0','Manuela','Sofia','Pineda','Diaz',13765666,5,0,0);
+insert into alumno values(18,19776565,'1','Ramiro','Leandro','Pineda','Correa',18998762,4,0,0);
+insert into alumno values(19,17665500,'7','Carmen','Santiago','Tapia','Ramirez',11800500,6,0,0);
+insert into alumno values(20,19443400,'2','Marcos','Andres','Pineda','Perez',10998998,6,0,0);
+----------------------------------------------------------------------------
+insert into asistencia values(1,76.6,2018,3);
+insert into asistencia values(1,56.4,2018,4);
+insert into asistencia values(1,60.6,2018,5);
+insert into asistencia values(1,89.9,2018,6);
+
+insert into asistencia values(2,70.3,2018,3);
+insert into asistencia values(2,76.2,2018,4);
+insert into asistencia values(2,80.6,2018,5);
+insert into asistencia values(2,88.2,2018,6);
+
+insert into asistencia values(3,75.2,2018,3);
+insert into asistencia values(3,65.3,2018,4);
+insert into asistencia values(3,98.9,2018,5);
+insert into asistencia values(3,56.5,2018,6);
+
+insert into asistencia values(4,77.4,2018,3);
+insert into asistencia values(4,73.3,2018,4);
+insert into asistencia values(4,80.3,2018,5);
+insert into asistencia values(4,72.1,2018,6);
+
+insert into asistencia values(5,88.1,2018,3);
+insert into asistencia values(5,80.8,2018,4);
+insert into asistencia values(5,75.4,2018,5);
+insert into asistencia values(5,56.3,2018,6);
+
+insert into asistencia values(6,89.3,2018,3);
+insert into asistencia values(6,90.3,2018,4);
+insert into asistencia values(6,87.3,2018,5);
+insert into asistencia values(6,50.3,2018,6);
+
+insert into asistencia values(7,45.4,2018,3);
+insert into asistencia values(7,70.3,2018,4);
+insert into asistencia values(7,80.3,2018,5);
+insert into asistencia values(7,88.1,2018,6);
+
+insert into asistencia values(8,23.2,2018,3);
+insert into asistencia values(8,20.4,2018,4);
+insert into asistencia values(8,20.4,2018,5);
+insert into asistencia values(8,27.9,2018,6);
+
+insert into asistencia values(9,87.3,2018,3);
+insert into asistencia values(9,81.2,2018,4);
+insert into asistencia values(9,76.2,2018,5);
+insert into asistencia values(9,74.2,2018,6);
+
+insert into asistencia values(10,87.4,2018,3);
+insert into asistencia values(10,46.4,2018,4);
+insert into asistencia values(10,56.8,2018,5);
+insert into asistencia values(10,78.7,2018,6);
+
+insert into asistencia values(11,76.1,2018,3);
+insert into asistencia values(11,70.2,2018,4);
+insert into asistencia values(11,56.5,2018,5);
+insert into asistencia values(11,45.9,2018,6);
+
+insert into asistencia values(12,79.3,2018,3);
+insert into asistencia values(12,87.1,2018,4);
+insert into asistencia values(12,88.1,2018,5);
+insert into asistencia values(12,79.1,2018,6);
+
+insert into asistencia values(13,70.1,2018,3);
+insert into asistencia values(13,73.2,2018,4);
+insert into asistencia values(13,98.1,2018,5);
+insert into asistencia values(13,45.6,2018,6);
+
+insert into asistencia values(14,75.2,2018,3);
+insert into asistencia values(14,87.1,2018,4);
+insert into asistencia values(14,80.1,2018,5);
+insert into asistencia values(14,67.3,2018,6);
+
+insert into asistencia values(15,45.6,2018,3);
+insert into asistencia values(15,79.1,2018,4);
+insert into asistencia values(15,73.0,2018,5);
+insert into asistencia values(15,80.5,2018,6);
+
+insert into asistencia values(16,78.1,2018,3);
+insert into asistencia values(16,88.1,2018,4);
+insert into asistencia values(16,91.1,2018,5);
+insert into asistencia values(16,66.5,2018,6);
+
+insert into asistencia values(17,81.3,2018,3);
+insert into asistencia values(17,87.2,2018,4);
+insert into asistencia values(17,69.2,2018,5);
+insert into asistencia values(17,74.6,2018,6);
+
+insert into asistencia values(18,88.1,2018,3);
+insert into asistencia values(18,76.5,2018,4);
+insert into asistencia values(18,56.2,2018,5);
+insert into asistencia values(18,66.0,2018,6);
+
+insert into asistencia values(19,49.4,2018,3);
+insert into asistencia values(19,79.1,2018,4);
+insert into asistencia values(19,81.2,2018,5);
+insert into asistencia values(19,88.3,2018,6);
+
+insert into asistencia values(20,76.6,2018,3);
+insert into asistencia values(20,73.2,2018,4);
+insert into asistencia values(20,79.1,2018,5);
+insert into asistencia values(20,66.2,2018,6);
+
+-----------------------------------------------
+
+insert into mensualidad values(1,3,20000,'Pagado');
+insert into mensualidad values(1,4,20000,'Pagado');
+insert into mensualidad values(1,5,20000,'Pagado');
+insert into mensualidad values(1,6,20000,'Pagado');
+
+insert into mensualidad values(2,3,20000,'Pagado');
+insert into mensualidad values(2,4,0,'Pendiente');
+insert into mensualidad values(2,5,20000,'Pagado');
+insert into mensualidad values(2,6,20000,'Pagado');
+
+insert into mensualidad values(3,3,20000,'Pagado');
+insert into mensualidad values(3,4,0,'Pendiente');
+insert into mensualidad values(3,5,0,'Pendiente');
+insert into mensualidad values(3,6,20000,'Pagado');
+
+insert into mensualidad values(4,3,20000,'Pagado');
+insert into mensualidad values(4,4,20000,'Pagado');
+insert into mensualidad values(4,5,20000,'Pagado');
+insert into mensualidad values(4,6,20000,'Pagado');
+
+insert into mensualidad values(5,3,20000,'Pagado');
+insert into mensualidad values(5,4,20000,'Pagado');
+insert into mensualidad values(5,5,20000,'Pagado');
+insert into mensualidad values(5,6,20000,'Pagado');
+
+insert into mensualidad values(6,3,20000,'Pagado');
+insert into mensualidad values(6,4,0,'Pendiente');
+insert into mensualidad values(6,5,20000,'Pagado');
+insert into mensualidad values(6,6,0,'Pendiente');
+
+insert into mensualidad values(7,3,20000,'Pagado');
+insert into mensualidad values(7,4,20000,'Pagado');
+insert into mensualidad values(7,5,20000,'Pagado');
+insert into mensualidad values(7,6,0,'Pendiente');
+
+insert into mensualidad values(8,3,20000,'Pagado');
+insert into mensualidad values(8,4,0,'Pendiente');
+insert into mensualidad values(8,5,20000,'Pagado');
+insert into mensualidad values(8,6,0,'Pendiente');
+
+insert into mensualidad values(9,3,20000,'Pagado');
+insert into mensualidad values(9,4,20000,'Pagado');
+insert into mensualidad values(9,5,0,'Pendiente');
+insert into mensualidad values(9,6,0,'Pendiente');
+
+insert into mensualidad values(10,3,20000,'Pagado');
+insert into mensualidad values(10,4,20000,'Pagado');
+insert into mensualidad values(10,5,20000,'Pagado');
+insert into mensualidad values(10,6,20000,'Pagado');
+
+insert into mensualidad values(11,3,20000,'Pagado');
+insert into mensualidad values(11,4,20000,'Pagado');
+insert into mensualidad values(11,5,20000,'Pagado');
+insert into mensualidad values(11,6,20000,'Pagado');
+
+insert into mensualidad values(12,3,20000,'Pagado');
+insert into mensualidad values(12,4,20000,'Pagado');
+insert into mensualidad values(12,5,20000,'Pagado');
+insert into mensualidad values(12,6,20000,'Pagado');
+
+insert into mensualidad values(13,3,0,'Pendiente');
+insert into mensualidad values(13,4,20000,'Pagado');
+insert into mensualidad values(13,5,20000,'Pagado');
+insert into mensualidad values(13,6,20000,'Pagado');
+
+insert into mensualidad values(14,3,0,'Pendiente');
+insert into mensualidad values(14,4,20000,'Pagado');
+insert into mensualidad values(14,5,20000,'Pagado');
+insert into mensualidad values(14,6,20000,'Pagado');
+
+insert into mensualidad values(15,3,20000,'Pagado');
+insert into mensualidad values(15,4,20000,'Pagado');
+insert into mensualidad values(15,5,20000,'Pagado');
+insert into mensualidad values(15,6,0,'Pendiente');
+
+insert into mensualidad values(16,3,20000,'Pagado');
+insert into mensualidad values(16,4,20000,'Pagado');
+insert into mensualidad values(16,5,20000,'Pagado');
+insert into mensualidad values(16,6,20000,'Pagado');
+
+insert into mensualidad values(17,3,20000,'Pagado');
+insert into mensualidad values(17,4,20000,'Pagado');
+insert into mensualidad values(17,5,20000,'Pagado');
+insert into mensualidad values(17,6,20000,'Pagado');
+
+insert into mensualidad values(18,3,20000,'Pagado');
+insert into mensualidad values(18,4,20000,'Pagado');
+insert into mensualidad values(18,5,20000,'Pagado');
+insert into mensualidad values(18,6,20000,'Pagado');
+
+insert into mensualidad values(19,3,20000,'Pagado');
+insert into mensualidad values(19,4,20000,'Pagado');
+insert into mensualidad values(19,5,20000,'Pagado');
+insert into mensualidad values(19,6,20000,'Pagado');
+
+insert into mensualidad values(20,3,20000,'Pagado');
+insert into mensualidad values(20,4,20000,'Pagado');
+insert into mensualidad values(20,5,20000,'Pagado');
+insert into mensualidad values(20,6,20000,'Pagado');
+------------------------------------------------------------------
+insert into notas values(1,10,4,'I');
+insert into notas values(1,20,0,'P');
+insert into notas values(1,30,4.7,'I');
+insert into notas values(1,40,5.3,'I');
+insert into notas values(1,50,5.4,'I');
+insert into notas values(1,60,2.5,'I');
+insert into notas values(1,70,0,'P');
+insert into notas values(1,80,0,'P');
+
+insert into notas values(2,10,5,'I');
+insert into notas values(2,20,5,'I');
+insert into notas values(2,30,4.7,'I');
+insert into notas values(2,40,0,'P');
+insert into notas values(2,50,0,'P');
+insert into notas values(2,60,4.5,'I');
+insert into notas values(2,70,5,'I');
+insert into notas values(2,80,2,'I');
+
+insert into notas values(3,10,3.3,'I');
+insert into notas values(3,20,2.6,'I');
+insert into notas values(3,30,4.3,'I');
+insert into notas values(3,40,5.6,'I');
+insert into notas values(3,50,6.4,'I');
+insert into notas values(3,60,6.5,'I');
+insert into notas values(3,70,2,'I');
+insert into notas values(3,80,2,'I');
+
+insert into notas values(4,10,4.2,'I');
+insert into notas values(4,20,2.3,'I');
+insert into notas values(4,30,4.7,'I');
+insert into notas values(4,40,5.3,'I');
+insert into notas values(4,50,6.4,'I');
+insert into notas values(4,60,3.5,'I');
+insert into notas values(4,70,3.3,'I');
+insert into notas values(4,80,5.5,'I');
+
+insert into notas values(5,10,4.0,'I');
+insert into notas values(5,20,3.5,'I');
+insert into notas values(5,30,0,'P');
+insert into notas values(5,40,0,'P');
+insert into notas values(5,50,5.4,'I');
+insert into notas values(5,60,2.5,'I');
+insert into notas values(5,70,3.3,'I');
+insert into notas values(5,80,6.2,'I');
+
+insert into notas values(6,10,4.2,'I');
+insert into notas values(6,20,4.3,'I');
+insert into notas values(6,30,6.1,'I');
+insert into notas values(6,40,0,'P');
+insert into notas values(6,50,0,'P');
+insert into notas values(6,60,3.3,'I');
+insert into notas values(6,70,6.4,'I');
+insert into notas values(6,80,3.8,'I');
+
+insert into notas values(7,10,4.3,'I');
+insert into notas values(7,20,2.2,'I');
+insert into notas values(7,30,4.7,'I');
+insert into notas values(7,40,5.3,'I');
+insert into notas values(7,50,5.4,'I');
+insert into notas values(7,60,2.5,'I');
+insert into notas values(7,70,3.1,'I');
+insert into notas values(7,80,6.3,'I');
+
+insert into notas values(8,10,0,'P');
+insert into notas values(8,20,0,'P');
+insert into notas values(8,30,5.5,'I');
+insert into notas values(8,40,3.4,'I');
+insert into notas values(8,50,6.7,'I');
+insert into notas values(8,60,6.1,'I');
+insert into notas values(8,70,3.3,'I');
+insert into notas values(8,80,2.8,'I');
+
+insert into notas values(9,10,4.1,'I');
+insert into notas values(9,20,2.2,'I');
+insert into notas values(9,30,4.7,'I');
+insert into notas values(9,40,5.3,'I');
+insert into notas values(9,50,5.4,'I');
+insert into notas values(9,60,2.5,'I');
+insert into notas values(9,70,4.5,'I');
+insert into notas values(9,80,6.7,'I');
+
+insert into notas values(10,10,6.1,'I');
+insert into notas values(10,20,4.5,'I');
+insert into notas values(10,30,4.7,'I');
+insert into notas values(10,40,5.3,'I');
+insert into notas values(10,50,5.4,'I');
+insert into notas values(10,60,2.5,'I');
+insert into notas values(10,70,5.5,'I');
+insert into notas values(10,80,6.3,'I');
+
+insert into notas values(11,10,4.9,'I');
+insert into notas values(11,20,6.0,'I');
+insert into notas values(11,30,4.7,'I');
+insert into notas values(11,40,5.3,'I');
+insert into notas values(11,50,5.4,'I');
+insert into notas values(11,60,2.5,'I');
+insert into notas values(11,70,3.5,'I');
+insert into notas values(11,80,6.7,'I');
+
+insert into notas values(12,10,0,'P');
+insert into notas values(12,20,0,'P');
+insert into notas values(12,30,0,'P');
+insert into notas values(12,40,5.8,'I');
+insert into notas values(12,50,5.2,'I');
+insert into notas values(12,60,6.7,'I');
+insert into notas values(12,70,3.4,'I');
+insert into notas values(12,80,6.7,'I');
+
+insert into notas values(13,10,4.0,'I');
+insert into notas values(13,20,5.5,'I');
+insert into notas values(13,30,4.7,'I');
+insert into notas values(13,40,5.3,'I');
+insert into notas values(13,50,5.4,'I');
+insert into notas values(13,60,2.5,'I');
+insert into notas values(13,70,6.0,'I');
+insert into notas values(13,80,5.0,'I');
+
+insert into notas values(14,10,0,'P');
+insert into notas values(14,20,0,'P');
+insert into notas values(14,30,4.2,'I');
+insert into notas values(14,40,5.2,'I');
+insert into notas values(14,50,5.4,'I');
+insert into notas values(14,60,6.5,'I');
+insert into notas values(14,70,4.5,'I');
+insert into notas values(14,80,6.7,'I');
+
+insert into notas values(15,10,6.4,'I');
+insert into notas values(15,20,5.0,'I');
+insert into notas values(15,30,4.7,'I');
+insert into notas values(15,40,5.7,'I');
+insert into notas values(15,50,5.4,'I');
+insert into notas values(15,60,2.5,'I');
+insert into notas values(15,70,5.1,'I');
+insert into notas values(15,80,6.3,'I');
+
+insert into notas values(16,10,3.4,'I');
+insert into notas values(16,20,5.0,'I');
+insert into notas values(16,30,4.7,'I');
+insert into notas values(16,40,5.3,'I');
+insert into notas values(16,50,5.4,'I');
+insert into notas values(16,60,2.5,'I');
+insert into notas values(16,70,7.0,'I');
+insert into notas values(16,80,4.7,'I');
+
+insert into notas values(17,10,4.4,'I');
+insert into notas values(17,20,6.5,'I');
+insert into notas values(17,30,4.5,'I');
+insert into notas values(17,40,5.8,'I');
+insert into notas values(17,50,6.4,'I');
+insert into notas values(17,60,4.5,'I');
+insert into notas values(17,70,6.2,'I');
+insert into notas values(17,80,7.0,'I');
+
+insert into notas values(18,10,4.0,'I');
+insert into notas values(18,20,6.0,'I');
+insert into notas values(18,30,5.7,'I');
+insert into notas values(18,40,3.3,'I');
+insert into notas values(18,50,5.4,'I');
+insert into notas values(18,60,6.5,'I');
+insert into notas values(18,70,5.5,'I');
+insert into notas values(18,80,5.0,'I');
+
+insert into notas values(20,10,4.3,'I');
+insert into notas values(20,20,6.1,'I');
+insert into notas values(20,30,2.2,'I');
+insert into notas values(20,40,6.3,'I');
+insert into notas values(20,50,4.4,'I');
+insert into notas values(20,60,4.5,'I');
+insert into notas values(20,70,5.5,'I');
+insert into notas values(20,80,5.4,'I');
+
+insert into notas values(19,10,0,'P');
+insert into notas values(19,20,0,'P');
+insert into notas values(19,30,4.7,'I');
+insert into notas values(19,40,5.3,'I');
+insert into notas values(19,50,5.4,'I');
+insert into notas values(19,60,0,'P');
+insert into notas values(19,70,0,'P');
+insert into notas values(19,80,0,'P');
+
+COMMIT;

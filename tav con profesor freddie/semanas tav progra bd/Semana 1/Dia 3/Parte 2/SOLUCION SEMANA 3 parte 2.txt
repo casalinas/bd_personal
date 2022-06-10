@@ -1,0 +1,46 @@
+--1)
+declare
+    v_rut varchar2(12);
+begin
+    -- cursor implicito
+    select v.rutvendedor into v_rut from vendedor v 
+    inner join boleta b on v.rutvendedor = b.rutvendedor 
+    group by v.rutvendedor
+    having sum(b.total)=(
+        select max(sum(b.total)) from vendedor v 
+        inner join boleta b on v.rutvendedor = b.rutvendedor 
+        group by v.rutvendedor);
+    update vendedor set sueldo_base=sueldo_base*1.1, comision=comision+0.01
+    where rutvendedor=v_rut;
+    for x in (select b.num_docto_pago,b.fecha,b.rutcliente,b.rutvendedor,v.nombre
+            , b.total,trunc( b.total*0.19) as iva,
+            trunc( b.total*0.19)+b.total as total_boleta
+            from vendedor v 
+            inner join boleta b on v.rutvendedor = b.rutvendedor
+            where v.rutvendedor=v_rut)
+    loop
+        insert into detalle_venta values(x.num_docto_pago,'BOL',x.fecha);
+    end loop;
+    -----------------------------------
+    -- cursor implicito
+    select v.rutvendedor into v_rut from vendedor v 
+    inner join factura f on v.rutvendedor = f.rutvendedor
+    group by v.rutvendedor
+    having sum(f.total)=(
+        select min(sum(f.total)) from vendedor v 
+        inner join factura f on v.rutvendedor = f.rutvendedor
+        group by v.rutvendedor);
+        
+    update vendedor set sueldo_base=sueldo_base*1.03, comision=comision+0.02
+    where rutvendedor= v_rut;
+    
+end;
+select * from vendedor;
+
+select b.num_docto_pago,b.fecha,b.rutcliente,b.rutvendedor,v.nombre
+, b.total,trunc( b.total*0.19) as iva,
+trunc( b.total*0.19)+b.total as total_boleta
+from vendedor v 
+inner join boleta b on v.rutvendedor = b.rutvendedor
+where v.rutvendedor=v_rut ;
+

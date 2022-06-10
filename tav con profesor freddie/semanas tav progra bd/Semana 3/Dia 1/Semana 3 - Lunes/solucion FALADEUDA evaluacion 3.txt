@@ -1,0 +1,130 @@
+create or replace procedure sp_principal(p_fecha date)
+is
+    v_porc number;
+    v_bono_antiguedad number;
+    v_comision number;
+begin
+    for x in (select e.nombre_emp,e.sueldo_base_emp,c.nombre_comuna
+                ,trunc((sysdate-e.fecing_emp)/365) as antiguedad,e.numrut_emp
+              from empleado e join comuna c on e.id_comuna = c.id_comuna)
+    loop
+        dbms_output.put_line('nombre:' || x.nombre_emp);
+        v_porc:=fn_porc_movilizacion(x.sueldo_base_emp, x.nombre_comuna);     
+        dbms_output.put_line('Valor de Movilizacion:' || v_porc);
+        v_bono_antiguedad:= fn_bonif_annos_contrato(x.antiguedad, x.sueldo_base_emp);
+        dbms_output.put_line('Bono Antiguedad:' || v_bono_antiguedad);
+        v_comision:= fn_comision(x.numrut_emp,p_fecha);
+        dbms_output.put_line('Comision:' || v_comision);
+    end loop;
+end;
+
+set serveroutput on;
+execute sp_principal('01/04/2018');
+
+------------------- funciones de apoyo
+-- funcion que recupera porcentaje de movilizacion
+create or replace function fn_porc_movilizacion(p_sueldo number,p_comuna varchar2)
+return number
+is
+    v_porc number;
+    v_adicional number:=0;
+begin
+   v_adicional:= fn_adicional_mov(p_comuna);
+   select porc_mov into v_porc from porc_movilizacion
+   where p_sueldo between sueldo_base_inf and sueldo_base_sup; 
+   RETURN (p_sueldo* (v_porc/100))+v_adicional;
+exception
+    when others then
+        RETURN 0+v_adicional;
+end;
+-----------------------------
+create table porc_movilizacion(
+	sec_movilizacion number primary key,
+	sueldo_base_inf number,
+	sueldo_base_sup number,
+	porc_mov number
+);
+select * from porc_movilizacion;
+insert into porc_movilizacion values(1, 100000, 300000,50);
+insert into porc_movilizacion values(2, 300001,1000000,30);
+insert into porc_movilizacion values(3,1000001,2500000,20);
+insert into porc_movilizacion values(4,2500001,8000000, 5);
+
+declare
+    v_porc number;
+begin
+    v_porc:=fn_porc_movilizacion(50000);
+    dbms_output.put_line('Porc movi:' || v_porc);
+end;
+
+select numrut_emp,sueldo_base_emp
+,fn_porc_movilizacion(sueldo_base_emp)
+from empleado;
+---- adicional movilizacion
+
+create or replace function fn_adicional_mov(p_comuna varchar2)
+return number
+is
+begin
+    if p_comuna in('La Pintana', 'Cerro Navia','Peñalolén') then
+        return 25000;
+    end if;
+    if p_comuna in('Melipilla','María Pinto','Curacaví','Talagante','Isla de Maipo','Paine') then
+        return 40000;
+    end if;
+    return 0;
+end;
+----------------------- prueba
+declare
+    v_adicional_mov number;
+begin
+    v_adicional_mov:=fn_adicional_mov('Melipilla');
+    dbms_output.put_line('Adicional Mov.:' || v_adicional_mov);
+end;
+
+------------------------ asignacion por años contratado (antiguedad)
+
+
+create or replace function fn_bonif_annos_contrato(p_antiguedad number,p_sueldo number)
+return number
+is
+    v_porc number;
+begin
+    select porc_bonif into v_porc from porc_bonif_annos_contrato
+    where p_antiguedad between annos_inferior and annos_superior;
+    RETURN p_sueldo * v_porc;
+exception
+    when others then
+        RETURN 0;
+end;
+----- probar
+declare
+    v_bonificacion number;
+begin
+    v_bonificacion:= fn_bonif_annos_contrato(10,1500000);
+    dbms_output.put_line('Bono Antiguedad:' || v_bonificacion);
+end;
+--------------------------------------- determinar comision venta
+
+create or replace function fn_comision(p_rut varchar2,p_fecha date)
+return number
+is
+    v_comision number;
+begin 
+    select sum(cv.valor_comision) into v_comision from comision_venta cv 
+    join boleta b on cv.nro_boleta = b.nro_boleta
+    where b.numrut_emp=p_rut 
+         and to_char(b.fecha_boleta,'MM/yyyy')=to_char(p_fecha,'MM/yyyy');
+    return v_comision;
+end;
+-- probar
+declare
+    v_comision number;
+begin
+    v_comision:=fn_comision('12113369','01/04/2018');
+    dbms_output.put_line('Suma Comisiones:' || v_comision);
+end;
+
+select * from boleta b 
+join comision_venta cv on cv.nro_boleta = b.nro_boleta
+order by b.numrut_emp, b.fecha_boleta;

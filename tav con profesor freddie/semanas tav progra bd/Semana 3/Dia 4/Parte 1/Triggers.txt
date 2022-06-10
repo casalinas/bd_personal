@@ -1,0 +1,48 @@
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+--SE CREA UNA TABLA DE EMPLEADOS
+CREATE TABLE EMPLEADOS AS (SELECT * FROM EMPLOYEES);
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+--CREAMOS UNA TABLA DE MOVIMIENTOS
+CREATE TABLE HISTORIAL_TRANSACCIONES(
+    ID NUMBER PRIMARY KEY,
+    DESCRIPCION VARCHAR2(100)
+);
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+---CREAMOS UNA SECUENCIA
+CREATE SEQUENCE SEC_MOVIMIENTOS;
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+--TRIGGER PARA ACTUALIZAR O ELIMINAR
+CREATE OR REPLACE TRIGGER TR_EMPLEADOS
+  BEFORE UPDATE OR DELETE ON EMPLEADOS  --ANTES DE ACTUALIZAR O ELIMINAR UN DATO DE LA TABLA EMPLEADOS
+  FOR EACH ROW				--POR CADA FILA
+DECLARE
+  -- variable local
+  V_DESCRIPCION VARCHAR2(100);
+BEGIN
+    --si estamos actualizando, entonces realizamos una acción
+    IF UPDATING THEN
+          V_DESCRIPCION := 'SE ACTUALIZÓ EL SUELDO DEL EMPLEADO ' || :OLD.FIRST_NAME || 
+                           ' NUEVO SUELDO : ' || :NEW.SALARY  || 
+                           ' ANTIGUO SUELDO : ' || :OLD.SALARY;  
+          INSERT INTO HISTORIAL_TRANSACCIONES VALUES (SEC_MOVIMIENTOS.NEXTVAL,V_DESCRIPCION);
+     END IF;
+
+    --si estamos eliminando, entonces realizamos una acción
+    IF DELETING THEN
+          V_DESCRIPCION := 'SE ELIMINÓ EL EMPLEADO ' || :OLD.FIRST_NAME;
+          INSERT INTO HISTORIAL_TRANSACCIONES VALUES (SEC_MOVIMIENTOS.NEXTVAL,V_DESCRIPCION);
+    END IF;
+    
+END ; 
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+--CONSULTAS DE PRUEBA
+SELECT * FROM EMPLEADOS;
+UPDATE EMPLEADOS SET SALARY = 20000 WHERE EMPLOYEE_ID= 100;
+UPDATE EMPLEADOS SET SALARY = 15000 WHERE EMPLOYEE_ID= 100;
+UPDATE EMPLEADOS SET SALARY = 12000 WHERE EMPLOYEE_ID= 100;
+
+--DELETE DE PRUEBA
+DELETE FROM EMPLEADOS WHERE EMPLOYEE_ID = 100 ;
+
+--REVISE LA TABLA "HISTORIAL_TRANSACCIONES" Y EN ELLA ENCONTRARÁ LOS MOVIMIENTOS QUE SE HICIERON

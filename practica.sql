@@ -2242,4 +2242,95 @@ las variables indicadas.
 - FILEOPEN: Abre el archivo definido por BFILE en el modo de acceso indicado
 - FILECLOSE: Cierra el archivo previamente abierto
 */
+-- creacion de objetos de tipo clob
 
+-- creacion de objetos clob
+create table informe(
+    rut varchar2(45),
+    comentario clob DEFAULT empty_clob()
+);
+-- insertar registro en informe
+insert into informe values('19913649-6','es un buen');
+select * from informe;
+/
+-- actualizar el registro para agregar mas datos en 'comentario'
+declare
+    v_clob clob;
+    v_largo number;
+begin
+    select comentario into v_clob
+    from informe where rut='19913649-6' for update; -- for update significa que
+    -- lo que le pase a la variable que guarda v_clob sera lo mismo que cambie en campo comentario
+    select length(' hombre de familia') into v_largo from dual;
+    dbms_lob.writeappend(v_clob,v_largo,' hombre de familia');
+    commit;
+end;
+select * from informe;
+----------------------------------------------
+-- insertar imagenes
+create table vacaciones2021(
+    cod number primary key,
+    descripcion varchar2(80),
+    foto blob default empty_blob()
+);
+select * from vacaciones2021;
+-- crear una referencia hacia un directorio existente en el disco 
+-- en el disco se debe ejecutar como administrador system
+create or replace directory OBJ_VACACIONES as 'C:\vacaciones\';
+-- dar permisos de uso del directorio al usuario o esquema prueba1_tav_freddie
+grant read, write on directory OBJ_VACACIONES TO prueba1_tav_freddie;
+
+-- recien ahora podemos insertar la imagen
+declare
+    v_blob blob; --guarda la foto como binario
+    v_bfile bfile; -- dice donde esta la foto fisicamente en el disco
+    v_foto varchar2(80); -- indica como se llama la foto
+begin
+    insert into vacaciones2021 values(1,'cartagena en cuarentena',empty_blob())
+    RETURNING foto into v_blob; -- se hace lo mismo que con for update
+    -- significa que toma la foto vacia en empty y la guarda en v_blob
+    -- cualquier cosa que pase en v_blob se insertara en campo blob
+    v_foto:='cartagena.jpg';
+    v_bfile:=bfilename('OBJ_VACACIONES',v_foto);
+    dbms_lob.open(v_bfile,dbms_lob.lob_readonly);
+    dbms_lob.loadfromfile(v_blob,v_bfile,dbms_lob.getlength(v_bfile));
+    dbms_lob.close(v_bfile);
+end;
+select * from vacaciones2021;
+---------------------------------------------------------------
+-- carga masiva de fotografias
+select * from alumno;
+-- agregar el campo tipo fotografia 
+alter table alumno add foto blob default empty_blob();
+select * from alumno;
+-- crear el objeto de tipo directorio dentro de la conexion system
+create or replace directory OBJ_ALUMNOS as 'C:\alumno'; -- directorio siempre en mayuscula
+-- dar permisos de lectura y escritura tambien desde system
+grant read, write on directory OBJ_ALUMNOS to prueba1_tav_freddie;
+
+declare
+    v_blob blob;
+    v_bfile bfile;
+    v_foto varchar2(80);
+begin
+    for x in (select * from alumno)
+    loop
+        begin
+            v_foto:= x.cod_alumno|| '.jpg';
+            
+            select foto into v_blob
+            from alumno where cod_alumno=x.cod_alumno for update;
+            
+            v_bfile:=bfilename('OBJ_ALUMNOS',v_foto);
+            dbms_lob.open(v_bfile, dbms_lob.lob_readonly);
+            dbms_lob.loadfromfile(v_blob,v_bfile,dbms_lob.getlength(v_bfile));
+            dbms_lob.close(v_bfile);
+            commit;
+        exception
+            when others then
+            dbms_output.put_line('la foto: '||v_foto||' no esta');
+        end;
+        
+    end loop;
+end;
+select * from alumno;

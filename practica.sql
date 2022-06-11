@@ -1977,3 +1977,269 @@ DBMS_OUTPUT.PUT_LINE('Rut '||v_run||' - Nombre:'||v_nombre||' Monto Facturado: '
 
 end;
 /
+
+----------------------------------------------------------------------------
+-- DIA 3
+/*
+control de flujo de ejecucion
+Expresiones case: retornan un resultado basado en una o mas alternativas,
+
+SENTENCIAS CASE: evaluan una condicion y realiza una accion
+
+SENTENCIA IF
+IF condicion_verdadera THEN -- si cumple condicion hace esto
+sentencias;
+ELSIF condicion THEN -- si la anterior es falsa cumple esta
+sentencias;
+END IF;
+-- (idealmente no tener mas de 5 if anidados, si es asi esta mal pensada la solucion)
+
+
+-- repaso de update
+para afectar toda una columna
+update usuario set campo='realmadrir'
+
+filtramos update para campos que cumplan con condicion
+update usuarios set capo='boca'
+where nombre='marcelo'
+
+actualizamos dos columnas con un update
+update (tabla) usuarios set (campos) nombre='marcelo', clave='10'
+where nombre='marco'
+
+DENTRO DE UN IF, LOS NULOS SE CONSIDERAN FALSOS 
+*/
+
+-----------------------------------------------------------------------
+-- Instrucciones IF
+declare
+    v_numero number :=&ingrese_nota;
+
+begin
+    if v_numero > 1 and v_numero <4 then
+        dbms_output.put_line('reprueba');
+    elsif v_numero>=4 and v_numero<= 7 then 
+        dbms_output.put_line('aprueba');
+    else 
+        dbms_output.put_line('pendiente');
+    end if;
+end;
+/
+-- escala
+/*
+    1- 3.5 => repro
+    3.6 - 3.9 => oport
+    4 - 4.5 => bueno
+    4.6 - 5.5 => muy bueno
+    5.5 > => excelente
+*/
+-- creamos tabla tramo notas
+create table tramo_notas(
+    id number primary key,
+    minima number(2,1) not null,
+    maxima number (2,1) not null
+);
+-- actualizamos campo minima
+update tramo_notas set minima = 5.6
+where id = 5;
+
+-- insertamos datos en tramo_notas
+insert into tramo_notas values (1, 1, 3.5); -- repro
+insert into tramo_notas values (2, 3.6 ,3.9); -- oport
+insert into tramo_notas values (3, 4, 4.5); -- bueno
+insert into tramo_notas values (4, 4.6, 5.5);-- muy bueno
+insert into tramo_notas values (5 ,5.6 ,7);-- excelente
+commit;
+select * from tramo_notas;
+
+-- añadimos columna a tramo_notas
+alter table tramo_notas add situacion varchar2(45);
+
+-- seteamos nuevo campo situacion de tabla tramo_notas
+update tramo_notas set situacion ='Reprobado' where id = 1;
+update tramo_notas set situacion ='Oportunidad' where id = 2;
+update tramo_notas set situacion ='Bueno' where id = 3;
+update tramo_notas set situacion ='Muy Bueno' where id = 4;
+update tramo_notas set situacion ='Excelente' where id = 5;
+/
+-- ocupar tabla de tramo
+declare
+    v_nota number(2,1):= 0;
+    v_situacion tramo_notas.situacion%type;
+begin
+    v_nota:=&Ingrese_nota;
+    select situacion 
+    into v_situacion
+    from tramo_notas
+    where v_nota between minima and maxima;
+    dbms_output.put_line('Situacion: ' || v_situacion);
+exception
+    when no_data_found then 
+    dbms_output.put_line('nota no se encuentra en los tramos');
+    when too_many_rows then 
+    dbms_output.put_line('Nota duplicada en tabla');
+    when others then 
+    dbms_output.put_line('problema diferente');
+end;
+/
+-- Expresiones CASE
+-- retorna un resultado basado en una o mas alternativas
+-- CUANDO SE ANTEPONE UNA VARIABLE AL CASE (V_VAR := CASE), el case termina con 'END';
+-- CUANDO NO SE ANTEPONE, SE TERMINA CON 'END CASE';
+declare
+    v_categoria varchar2(1):='A';
+    v_sueldo number :=0;
+    v_bono number :=0;
+begin
+    v_categoria:='&ingrese_categoria';
+    v_sueldo:=&ingrese_sueldo;
+    v_bono:= CASE
+                WHEN v_categoria='A' and v_sueldo <1500 then 520
+                WHEN v_categoria='A' and (v_sueldo >= 1500 and v_sueldo <= 3000) then 420
+            else
+                800
+            end;
+          dbms_output.put_line('Bono: ' || v_bono);  
+end;
+/
+declare 
+    v_categoria varchar2(1):='A';
+begin
+    v_categoria:=UPPER('&Ingrese_categoria');
+    case
+        when v_categoria='A' then
+            dbms_output.put_line('Mejor empleado');
+        when v_categoria='B' then
+            dbms_output.put_line('Buen empleado');
+        when v_categoria='C' then
+            dbms_output.put_line('Empleado normal');
+        when v_categoria='D' then
+            dbms_output.put_line('Mal empleado');
+        else 
+            dbms_output.put_line('EMPLEADO NO CATALOGADO');
+    END case;
+end;
+/
+---------------------------------------------------------
+declare
+    v_edad number;
+begin
+    if v_edad is null then
+        dbms_output.put_line('es nulo');
+    else 
+        dbms_output.put_line('es nulo');
+    end if;
+end;
+/
+-- estructura de control de iteraciones
+-- bucle eterno sin salida
+-- loop simple
+
+declare
+    v_cont number:= 0;
+begin
+    loop
+        dbms_output.put_line('Contador: '|| v_cont);
+    v_cont := v_cont+1;
+    end loop;
+end;
+/
+-- bucle con condicion de salida
+-- loop simple
+declare
+    v_cont number:= 0;
+begin
+    loop
+        dbms_output.put_line('Contador: '|| v_cont);
+    v_cont := v_cont+1; -- aumenta valor de variable
+    exit when v_cont= 15; -- condicion de salida
+    end loop;
+end;
+/
+-- WHILE LOOP
+-- while se usa como cabecera
+declare
+    v_contador number:=0;
+begin
+    while v_contador<10
+    loop
+    dbms_output.put_line('cont: '||v_contador);
+    v_contador:= v_contador+1;
+    end loop;
+end;
+/
+--
+declare
+    
+begin
+    for v_cont in 1..10 -- v_cont es una variable temporal del for la cual se puede
+                        -- utilizar dentro del loop, y los .. significan 'hasta'
+                        -- ( for (para) v_cont in desde..hasta)
+    loop
+        dbms_output.put_line('Contador: ' || v_cont);
+    end loop;
+end;
+/
+---------------------------------------
+
+-- registros en for
+declare
+    v_cate varchar2(45);
+begin
+    for reg in (select first_name, salary from employees)
+    loop
+        if reg.salary>10000 then
+        v_cate:='El Mejor empleado';
+        else 
+            v_cate:='Del Monton';
+        end if;
+        dbms_output.put_line('Nomb. '||reg.first_name||' categoria '||v_cate);
+    end loop;
+end;
+
+-- CLASE 4
+-- Solo se hicieron ejercicios de la primera unidad
+-- CLASE 5, se MANDO PRUEBA
+-- CLASE 6, SE ENVIO PRUEBA
+---------------------------------------------------------------------------------
+-- CLASE 7, COMIENZA LA SEGUNDA UNIDAD
+/*
+tipo de variables lob
+* LOBS (largo objetos) el medio para almacenar datos grandes
+* CLOB: usado para caracteres largos (libros), reemplaza al tipo long, esta dentro de bd
+* BFILE: se guarda una referencia, indicando una ruta (vinculo), que apunta a la
+  ubicacion de los datos (dentro de servidor), guardandose estos fuera de la base de datos.
+* Existe una maxima cantidad de archivos concurrentes que pueden ser leidos por sesión,
+la cual esta limitada por el parametro SESSION_MAX_OPEN_FILES(por defecto 10), por lo
+que limita tambien la cantidad de lecturas concurrentes sobre campos BFILE por sesión.
+
+* NCLOB: Similar a CLOB, solo que almacena texto cuyo juego de caracteres esta
+definido por el National Character Set de la base de datos (guardar distintos idiomas
+en un registro)
+
+* Temporary Lob: Solo se encuentran vigente dentro del ciclo de vida dentro de una 
+sesión de usuario, no generan redo log (ctrl + z) por lo que es mas liviano y rapido.
+no soy muy frecuentes o utiles.
+
+Package Oracle DBMS_LOB tiene las opciones:
+- READ: lee en buffer el numero de bytes
+- WRITE: escribe desde buffer indicando numero de bytes (BFILE, BLOB)
+- COPY: Procedimiento que copia todo o parte del contenido de un LOB a otro LOB.
+- ERASE: Elimina todo o parte del contenido de un LOB
+- FILEEXISTS: Indica la existencia o no del archivo indicado,
+si devuelve 1 existe, con 0 no existe
+
+- FILEGETNAME: Devuelve el Directorio + archivo asociado a ese localizador, dentro de 
+las variables indicadas.
+
+- GETLENGHT: devuelve tamaño en bytes
+-  LOADFROMFILE: Se usa para leer todo o parte de un archivo (se usara harto) 
+- COMPARE: para comparar objetos.
+ A) si devuelve 0 => archivos identicos
+ B) 1 => archivos diferentes
+ C) NULL => Objetos de diferente tipo.
+
+- FILEOPEN: Abre el archivo definido por BFILE en el modo de acceso indicado
+- FILECLOSE: Cierra el archivo previamente abierto
+*/
+

@@ -2093,7 +2093,7 @@ declare
 begin
     v_categoria:='&ingrese_categoria';
     v_sueldo:=&ingrese_sueldo;
-    v_bono:= CASE
+    v_bono:= CASE -- CASE termina con end cuando se antepone variable
                 WHEN v_categoria='A' and v_sueldo <1500 then 520
                 WHEN v_categoria='A' and (v_sueldo >= 1500 and v_sueldo <= 3000) then 420
             else
@@ -2242,7 +2242,6 @@ las variables indicadas.
 - FILEOPEN: Abre el archivo definido por BFILE en el modo de acceso indicado
 - FILECLOSE: Cierra el archivo previamente abierto
 */
--- creacion de objetos de tipo clob
 
 -- creacion de objetos clob
 create table informe(
@@ -2334,3 +2333,4 @@ begin
     end loop;
 end;
 select * from alumno;
+

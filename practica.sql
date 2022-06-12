@@ -2297,40 +2297,41 @@ begin
 end;
 select * from vacaciones2021;
 ---------------------------------------------------------------
--- carga masiva de fotografias
-select * from alumno;
--- agregar el campo tipo fotografia 
+-- carga masiva de fotografias (1:53:00 clase_7)
+-- agregar campo tipo fotografia
 alter table alumno add foto blob default empty_blob();
 select * from alumno;
--- crear el objeto de tipo directorio dentro de la conexion system
-create or replace directory OBJ_ALUMNOS as 'C:\alumno'; -- directorio siempre en mayuscula
--- dar permisos de lectura y escritura tambien desde system
-grant read, write on directory OBJ_ALUMNOS to prueba1_tav_freddie;
 
+-- crear el objeto de tipo directorio (ejecutar en conexión system)
+-- ubicacion siempre en mayuscula
+-- se utilizo script de prueba1 tav
+create or replace directory OBJ_ALUMNO as 'C:\alumno';
+grant read, write on directory OBJ_ALUMNO to prueba1_tav_cristian;
+-- bloque desde alumno
 declare
     v_blob blob;
     v_bfile bfile;
     v_foto varchar2(80);
-begin
+begin -- proceso se deja dentro del bloque para capturar excepcion
     for x in (select * from alumno)
     loop
         begin
-            v_foto:= x.cod_alumno|| '.jpg';
-            
-            select foto into v_blob
-            from alumno where cod_alumno=x.cod_alumno for update;
-            
-            v_bfile:=bfilename('OBJ_ALUMNOS',v_foto);
-            dbms_lob.open(v_bfile, dbms_lob.lob_readonly);
-            dbms_lob.loadfromfile(v_blob,v_bfile,dbms_lob.getlength(v_bfile));
-            dbms_lob.close(v_bfile);
-            commit;
-        exception
-            when others then
-            dbms_output.put_line('la foto: '||v_foto||' no esta');
-        end;
+        v_foto:= x.cod_alumno||'.jpg';
         
+        select foto into v_blob 
+        from alumno where cod_alumno=x.cod_alumno for update; -- for update hace que cualquier cosa que le pase a variable le pasa a foto
+    
+        v_bfile:=bfilename('OBJ_ALUMNO',v_foto);
+        dbms_lob.open(v_bfile, dbms_lob.lob_readonly);
+        dbms_lob.loadfromfile(v_blob,v_bfile,dbms_lob.getlength(v_bfile));
+        dbms_lob.close(v_bfile);
+        commit;        
+    exception
+    when others then
+        dbms_output.put_line('Foto: ' || v_foto || ' no esta');
+        end;
     end loop;
 end;
+
 select * from alumno;
 

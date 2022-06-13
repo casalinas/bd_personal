@@ -2729,3 +2729,23 @@ begin
     dbms_output.put_line('v_day(6)' || v_day(6));
     dbms_output.put_line('v_day(7)' || v_day(7));
 end;
+/*
+- diferencia drop y truncate es que truncate borra resultados
+pero no la tabla.
+- y drop borra todo, tanto tabla como sus datos
+
+parametros formale
+son variables declaradas en la lista de parametros del
+subprograma(modo in, out o in out) por defecto es in,
+se usan en la seccion de ejecucion.
+
+parametros actuales.
+son valores, variables o expresiones usados para ejecutar un subprograma 
+con parametros. se asocian a los parametros formales del sub
+programa.
+
+varray tiene un solo tipo de dato
+in out manda un valor adentro y se pide que retorne un resultado
+
+primer cursor tiene relacion de uno a muchos para el segundo
+*/

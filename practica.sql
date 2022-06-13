@@ -2650,3 +2650,51 @@ begin
     close cur_alumnos;
 end;
 select * from clie;
+
+/*
+-- un cursor puede ser reabierto solo si esta cerrado, 
+si se leen datos de un cursor cerrado aparece la excepcion INVALID_CURSOR
+
+- por defecto se pueden tener abiertos 50 cursores por sesión, esto se determina
+con el parametro OPEN_CURSORS
+
+atributos para cursores explicitos:
+cur%isopen
+cur%notfound
+cur%found rowcount
+cur%rowcount
+
+EXIT WHEN cur_emp%rowcount >10 or cur_emp%notfound;
+(sale del cursor al encontrar 10 resultados o al momento de dejar de encontrar datos)
+
+
+*/
+
+-- ver cada cliente con sus creditos
+declare
+    cursor cur_clientes is select * from clientes;
+    cursor cur_creditos(p_run number) is
+    -- parametro que asocia cliente con cada uno de sus creditos
+    select * from creditos where run_cliente=p_run;
+    reg_cli cur_clientes%rowtype;
+    reg_cre cur_creditos%rowtype;
+    v_total number:=0;
+    v_nombre varchar2(100);
+begin
+    open cur_clientes;
+    loop
+    fetch cur_clientes into reg_cli;
+    exit when cur_clientes %notfound;
+    v_nombre:=reg_cli.nombre ||' '||reg_cli.appaterno||' '||reg_cli.apmaterno;
+        dbms_output.put_line('Nombre: '||v_nombre||' Direccion: '||reg_cli.direccion);   
+    
+    open cur_creditos(reg_cli.run_cliente);
+    loop
+        fetch cur_creditos into reg_cre;
+        exit when cur_creditos%notfound;
+      dbms_output.put_line('id: '|| reg_cre.id_credito||'monto: '||reg_cre.monto_pago||'cuotas'||reg_cre.cuotas)
+    end loop;
+    close cur_creditos;
+end loop;
+close cur_clientes;
+end;

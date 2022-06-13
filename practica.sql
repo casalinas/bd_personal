@@ -2495,6 +2495,158 @@ begin
     end loop;
     close cur_profesores;
 end;
+----------------------------------------------------------------------------------------
+-- CLASE 8
 
 
-                                  
+-- se pueden utilizar atributos con cursores, como los siguientes:
+-- %isopen %notfound %found %rowcount
+-- se debe anteponer sql (sql%rowcount) y para cursores anteponer nombre cursor (cur%notfound)
+-- en cursores implicitos se usa sql, en explicitos nombre cursor
+--tambien se pueden usar con delete update insert
+
+-- el cursor se aplica sobre columnas especificadas, no es conveniente hacer un select *,
+-- es mejor especificar
+
+/*
+sql%open BOOLEANO 
+sql%notfound BOOLEANO si no encuentra registros afectados es verdadera
+sql%found BOOLEANO retorna verdadero si la ultima sentencia afecto a n filas
+sql%rowcount NUMERICO cuenta las filas afectadas
+*/
+
+-- clausula desc sirve para ver tipos de datos en una tabla
+-- opciones asociadas a cursores implicitos
+/*
+no_data_found: se produce cuando sentencia select intenta recuperar datos pero no 
+encuentra ninguno
+
+too_many_rows: ocurre cuando se detecta mas de una fila en los resultados, puesto que 
+que cursores implicitos solo pueden recuperar una fila
+*/
+
+-- ejemplo de error con excepcion
+-- DEBEMOS DEJAR CONSTANCIA DE ERRROES INSERTANDOLOS EN UNA TABLA
+declare
+v_apellido VARCHAR2(50);
+begin
+select LAS_NAME
+  into v_apellido
+  from EMPLOYEES
+ where FIRST_NAME='DEVID';
+exception
+  when no_data_found then
+    DBMS_OUTPUT.PUT_LINE('ERROR!!! CURSOR IMPLICITO NO RETORNA FILAS');
+
+    insert into ERRORES 
+    values (
+        SEQ_EMPLEADO.nextval,
+        'ERROR EN EL PROCESO DE EMPLEADO CON NOMBRE DEVID. NO EXISTEN FILAS A PROCESAR');
+end;
+
+-- otro ejemplo de exepciones
+
+DECLARE
+    v_cod alumno.cod_alumno%type;
+    v_error varchar2(300);
+BEGIN
+    select cod_alumno into v_cod
+    from alumno
+    where cod_alumno=10;
+    DBMS_OUTPUT.PUT_LINE('el alumno existe');
+exception
+    when no_data_found then
+    DBMS_OUTPUT.PUT_LINE('no existe alumno');
+    when too_many_rows then
+    DBMS_OUTPUT.PUT_LINE('muchas filas de retorno');
+    when others then -- siempre es bueno usar when others para errores desconocidos
+    -- y aplicar variable para insertar cual es el error
+    v_error:= sqlerrm;
+    DBMS_OUTPUT.PUT_LINE('Error: ' || v_error);
+END;
+---------------- uso de atributos sql (%)
+select * from alumno;
+declare
+    
+begin
+    update alumno set porc_repro = 2 where cod_alumno=1;
+    if sql%notfound then 
+        DBMS_OUTPUT.PUT_line('No modifica');
+        else
+        dbms_output.put_line('actualizo N° ' || SQL%ROWCOUNT);
+    END IF;
+end;
+desc alumno;
+------------------------------------------------------------
+declare
+begin
+    delete from tramo_asistencia where id_tramo = 1;
+    if sql%found then
+    dbms_output.put_line('Se eliminaron '||sql%rowcount);
+    else
+    dbms_output.put_line('No se eliminaron registros.');
+end if;
+end;
+rollback;
+select * from tramo_asistencia;
+----------------------------------------------------------
+-- cursor explicito que retorna cod alumno y rut
+declare
+    cursor cur_alumnos is
+    (select cod_alumno, numrut, dvrut from alumno);
+    v_cod alumno.cod_alumno%type;
+    v_run alumno.numrut%type;
+    v_dv alumno.dvrut%type;
+begin
+    open cur_alumnos;
+    loop
+        fetch cur_alumnos INTO v_cod, v_run, v_dv;
+        exit when cur_alumnos%notfound;
+        DBMS_OUTPUT.PUT_LINE('cod_alumno '||v_cod);        
+        DBMS_OUTPUT.PUT_LINE('Rut: '||v_run||'-'||v_dv);
+    end loop;
+    close cur_alumnos;
+end;
+-- creacion de cursor con registro como variable compuesta
+declare
+    cursor cur_alumnos is
+    (select cod_alumno, numrut, dvrut from alumno);
+    reg_alumnos cur_alumnos%rowtype; -- reg es de tipo cursor
+begin
+    open cur_alumnos;
+    loop
+        fetch cur_alumnos INTO reg_alumnos;
+        exit when cur_alumnos%notfound;
+        DBMS_OUTPUT.PUT_LINE('cod_alumno '||reg_alumnos.cod_alumno);        
+        DBMS_OUTPUT.PUT_LINE('Rut: '||reg_alumnos.numrut||'-'||reg_alumnos.dvrut);
+    end loop;
+    close cur_alumnos;
+end;
+-- creacion de tabla e insercion de datos a traves de cursor
+-- manera simple de crear tabla
+create table clie2 as
+(select numrut, dvrut
+  from alumno);
+
+-- manera independiente
+create table clie(
+    run number primary key,
+    dv_run varchar2(1)
+);
+
+declare
+    cursor cur_alumnos is
+    (select cod_alumno, numrut, dvrut from alumno);
+    reg_alumnos cur_alumnos%rowtype; -- reg es de tipo cursor
+begin
+    open cur_alumnos;
+    loop
+        fetch cur_alumnos INTO reg_alumnos;
+        exit when cur_alumnos%notfound;
+        DBMS_OUTPUT.PUT_LINE('cod_alumno '||reg_alumnos.cod_alumno);        
+        DBMS_OUTPUT.PUT_LINE('Rut: '||reg_alumnos.numrut||'-'||reg_alumnos.dvrut);
+        insert into clie values(reg_alumnos.numrut,reg_alumnos.dvrut);
+    end loop;
+    close cur_alumnos;
+end;
+select * from clie;

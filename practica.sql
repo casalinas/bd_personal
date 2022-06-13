@@ -2698,3 +2698,34 @@ begin
 end loop;
 close cur_clientes;
 end;
+
+-- ejemplo varray
+/*
+1.define, 2.declara, 3.inicializa, 4.asigna, 5.accede
+*/
+-- se define con type
+declare
+TYPE V_array_type IS varray(7) OF VARCHAR2(30);
+
+-- se declara e inicializa
+v_day V_array_type :=V_array_type(null,null,null,
+                        null,null,null,null,);
+-- se asigna
+begin
+  v_day(1) := 'monday';
+    v_day(2) := 'tuesday';
+      v_day(3) := 'wednesday';
+        v_day(4) := 'thursday';
+          v_day(5) := 'friday';
+            v_day(6) := 'saturday';
+              v_day(7) := 'sunday';
+
+    -- se accede
+    dbms_output.put_line('v_day(1)' || v_day(1));
+    dbms_output.put_line('v_day(2)' || v_day(2));
+    dbms_output.put_line('v_day(3)' || v_day(3));
+    dbms_output.put_line('v_day(4)' || v_day(4));
+    dbms_output.put_line('v_day(5)' || v_day(5));
+    dbms_output.put_line('v_day(6)' || v_day(6));
+    dbms_output.put_line('v_day(7)' || v_day(7));
+end;

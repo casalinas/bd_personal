@@ -2334,4 +2334,167 @@ begin -- proceso se deja dentro del bloque para capturar excepcion
 end;
 
 select * from alumno;
+--------------------------------------------------------------------------------
+-- cambio de script alumnos a prueba 2 de tav con freddie
+-- se insertan imagenes en cadena como se haria en prueba, con tabla para guardar error
+-- en caso de no encontrar foto
 
+declare
+    v_blob blob;
+    v_bfile bfile;
+    v_foto varchar2(300);
+    v_mensaje_error varchar2(300);
+begin
+    for x in (select * from alumno)
+    loop
+        declare
+        begin
+        v_foto:=x.cod_alumno||'.jpg';
+        select foto into v_blob from alumno
+        where cod_alumno = x.cod_alumno for update;
+        
+        v_bfile:=bfilename('OBJ_ESTUDIANTES',v_foto);
+        dbms_lob.open(v_bfile, dbms_lob.lob_readonly);
+        dbms_lob.loadfromfile(v_blob, v_bfile, dbms_lob.getlength(v_bfile));-- guarda en blob imagen en bfile, y que sea el largo total de imagen
+        dbms_lob.close(v_bfile);
+        commit;
+    exception
+        when others then
+            v_mensaje_error := sqlerrm;
+            insert into error_fotografias
+            values(seq_error_foto.nextval,v_mensaje_error,v_foto); -- inserta seq, men erorr y nombre foto con error
+        end;
+    end loop;
+end;
+
+----------------------------------------------------------------------------------------
+
+select * from alumno;
+select * from error_fotografias;
+alter table alumno add foto blob DEFAULT empty_blob();
+
+-- tabla de error fotos
+drop table error_fotografias;
+create table error_fotografias(
+    id number primary key,
+    descripcion varchar2(300),
+    foto varchar2(300)
+);
+commit;
+
+create sequence seq_error_foto;
+drop sequence seq_error_foto;
+-- crear objeto directorio
+create or replace directory OBJ_ESTUDIANTES AS 'C:\estudiantes';
+grant read, write on directory OBJ_ESTUDIANTES to prueba2_tav_freddie;
+/
+-- insertar imagenes
+
+declare
+    v_blob blob;
+    v_bfile bfile;
+    v_foto varchar2(300);
+    v_mensaje_error varchar2(300);
+begin
+    for x in (select * from alumno)
+    loop
+        declare
+        begin
+        v_foto:=x.cod_alumno||'.jpg';
+        select foto into v_blob from alumno
+        where cod_alumno = x.cod_alumno for update;
+        
+        v_bfile:=bfilename('OBJ_ESTUDIANTES',v_foto);
+        dbms_lob.open(v_bfile, dbms_lob.lob_readonly);
+        dbms_lob.loadfromfile(v_blob, v_bfile, dbms_lob.getlength(v_bfile));-- guarda en blob imagen en bfile, y que sea el largo total de imagen
+        dbms_lob.close(v_bfile);
+        commit;
+    exception
+        when others then
+            v_mensaje_error := sqlerrm;
+            insert into error_fotografias
+            values(seq_error_foto.nextval,v_mensaje_error,v_foto); -- inserta seq, men erorr y nombre foto con error
+        end;
+    end loop;
+end;
+----------------------------------------------------------------------
+-- objetos compuestos, son como variables pero con tipo
+declare 
+    type tipo_reg is record(
+        nombre varchar2(45),
+        edad number(3),
+        rut varchar2(12)
+    );
+    reg_emp tipo_reg;
+begin
+    reg_emp.nombre:='Juanito';
+    reg_emp.edad:=25;
+    reg_emp.rut:='19913649-6';
+    dbms_output.put_line('Nombre: '||reg_emp.nombre);
+    dbms_output.put_line('Edad: '||reg_emp.edad);
+    dbms_output.put_line('Rut: '||reg_emp.rut);
+end;
+/
+---- crear un tipo table
+
+declare
+    type tipo_nombres is table of 
+        PROFESOR.PNOMBRE%type
+        index by pls_integer;
+    v_nombre  tipo_nombres;
+    
+begin
+    declare
+    begin
+    v_nombre(1):='Marco';
+    v_nombre(3):='Antonio';
+    v_nombre(8):='Pedro';
+    DBMS_OUTPUT.PUT_LINE('nombre 1: ' || v_nombre(1));
+    DBMS_OUTPUT.PUT_LINE('nombre 1: ' || v_nombre(2));
+    exception
+    when no_data_found then
+    DBMS_OUTPUT.PUT_LINE('no existe el nombre solicitado ');
+    end;
+end;
+/
+-- creacion de tabla y recorrer con for
+
+declare
+    type comunas is table of varchar2(100) 
+    index by pls_integer;-- indexar sirve para reorganizar
+    v_comunas comunas;
+begin
+    v_comunas(1):='Las Condes';
+    v_comunas(2):='Vitacura';
+    v_comunas(3):='Providencia';
+    v_comunas(4):='La Reina';
+    v_comunas(5):='Maipu';
+    v_comunas(6):='Puente Alto';
+    v_comunas(7):='San Miguel';
+    
+    for x in v_comunas.first..v_comunas.last
+    loop
+        dbms_output.put_line('Comuna: '|| v_comunas(x));
+    end loop;
+end;
+
+-- creacion de cursor basico
+declare
+    cursor cur_profesores is select * from profesor;
+    reg_profesores cur_profesores%rowtype; -- rowtype hace la variable del tipo de fila cursor (tabla)
+begin
+    -- un cursor primero se abre
+    open cur_profesores;
+    loop
+        -- recuperar un registro del curosr
+        FETCH cur_profesores into reg_profesores;
+        -- salir cuando no hay mas registros
+        exit when cur_profesores%notfound; -- condicion de salida
+        -- procesar el registro recuperado
+       dbms_output.put_line('Nombre: ' || reg_profesores.pnombre);
+    end loop;
+    close cur_profesores;
+end;
+
+
+                                  

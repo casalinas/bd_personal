@@ -2749,3 +2749,96 @@ in out manda un valor adentro y se pide que retorne un resultado
 
 primer cursor tiene relacion de uno a muchos para el segundo
 */
+
+-- avance prueba2 
+
+/*
+condiciones para hacer la prueba 
+- se debe redondear todo a enteros  
+- funciones parametricas para informacion (BIND)
+- por cada profesional procesado se almacena en detalle_asignacion_mes
+- en resumen_mes_profesion va resumen de profesiones de datos obtenidos en proceso
+- informacion de errores que se deben controlar en el proceso se almacena en tabla errores_p
+- error_id es = a seq_errores
+- BIND para  fechas y valor limite 410.000 de asignacion de pago 
+- VARRAY para: valores de 5 porcentajes de traslado y monto mov fijo
+- record para almacenar informacion. min dos registros
+- estructura for loop y while loop para cursores
+- valores redondeados
+- dos cursores simultaneos para informacion detallada y resumida
+- excepcion definida por usuario para capturar monto total de asignaciones
+- (que no supere los 410.000), se debe interceptar error y guardar en tabla
+- de errores y reemplazar monto calculado de comision por monto limite (410.000)
+- excepciones predefinidas para controlar cualquier error que se produzca de recuperar
+- los % necesarios para calcular asignacion por evaluacion.
+- tabla DETALLE_ASIGNACION info se debe almacenar ordenada en forma ascendente por
+profesion, apellido paterno y nombre del profesional. 
+En tabla resumen ascendente por profesion
+PARA LA PRUEBA. EJECUTAR PROCESO CONSIDERANDO ASESORIAS DEL MES DE JUNIO DE 2021.
+*/
+
+-- obtener numero y monto total de las asesorias de todos los profesionales
+-- en mes de proceso, se debe poder cambiar mes y año (bind)
+DROP SEQUENCE SEQ_ID;
+CREATE SEQUENCE SEQ_ID;
+TRUNCATE TABLE DETALLE_ASIGNACION_MES; 
+TRUNCATE TABLE RESUMEN_MES_PROFESION;
+TRUNCATE TABLE ERRORES_P;
+
+VARIABLE b_mes_proceso number;
+EXEC :b_mes_proceso :=6; 
+VARIABLE b_anno_proceso number;
+EXEC :b_anno_proceso :=2021; 
+
+DECLARE
+    TYPE asesoria_type IS RECORD(
+    mes number,
+    anno number,
+    run number,
+    nombre varchar2(80),
+    profesion varchar2(50),
+    nro_ases number,
+    honorarios number, 
+    asig_mov number,
+    asig_eval number,
+    asig_tipocont number,
+    asig_profesion number,
+    total_asignaciones_profesional number);
+    
+    rec_asesoria asesoria_type;
+ 
+  CURSOR cur_asesoria is (select
+     EXTRACT(MONTH FROM ases.inicio_asesoria) as mes_proceso,
+     EXTRACT(YEAR FROM ases.inicio_asesoria) as anno_proceso,
+     ases.numrun_prof as numrun_prof,
+     prof.nombre||' '||prof.appaterno||' '||prof.apmaterno as nombre_profesional, 
+     prosion.nombre_profesion as profesion,
+     count(ases.numrun_prof)
+    -- ases.honorario as honorarios
+ 
+     from asesoria ases
+     INNER JOIN profesional prof
+     on (ases.numrun_prof=prof.numrun_prof)
+     INNER JOIN PROFESION prosion ON (prosion.cod_profesion=prof.cod_profesion)
+     WHERE extract(month from inicio_asesoria)=:b_mes_proceso
+     AND extract(YEAR FROM inicio_asesoria)=:b_anno_proceso
+ group by 
+     EXTRACT(MONTH FROM ases.inicio_asesoria), 
+     EXTRACT(YEAR FROM ases.inicio_asesoria),
+     ases.numrun_prof, prof.nombre||' '||prof.appaterno||' '||prof.apmaterno,
+     prosion.nombre_profesion)
+ order by ases.numrun_prof;
+ BEGIN
+open cur_asesoria;
+loop
+ fetch cur_asesoria into rec_asesoria.mes, rec_asesoria.anno,rec_asesoria.run 
+ ,rec_asesoria.nombre,rec_asesoria.profesion,rec_asesoria.nro_ases;
+ exit when cur_asesoria%notfound;
+ 
+ DBMS_OUTPUT.PUT_LINE('mes '||rec_asesoria.mes||' año '||rec_asesoria.anno||
+ ' run '||rec_asesoria.run||' nombre '||rec_asesoria.nombre||' profesion '||
+ rec_asesoria.profesion||' n° asesorias '||rec_asesoria.nro_ases);
+end loop;
+close cur_asesoria;
+end;
+

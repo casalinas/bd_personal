@@ -1331,7 +1331,7 @@ Begin
 
 	V_numero := &ingrese_numero; -- con el & le pediomos al usuario ingresar un numero
 If v_numero > 10 then
-		Dbms_output.put_line(‘el numero es mayor a 10’);
+		Dbms_output.put_line('el numero es mayor a 10');
 Else
 	Raise v_exe; -- si numero es menor a 10 ocurre excepción
 End if;
@@ -2729,6 +2729,12 @@ begin
     dbms_output.put_line('v_day(6)' || v_day(6));
     dbms_output.put_line('v_day(7)' || v_day(7));
 end;
+
+
+
+
+
+
 /*
 - diferencia drop y truncate es que truncate borra resultados
 pero no la tabla.
@@ -2842,3 +2848,306 @@ end loop;
 close cur_asesoria;
 end;
 
+
+-- MANEJO DE EXCEPCIONES
+/*
+- siempre es buena practica colocar when others al final para errores
+- que no podemos manejar
+
+- exception comienza la seccion de manejo de excepciones
+- se pueden crear varios controladores de excepciones
+- solo un gestor de excepciones es procesado antes qde que la ejecucion
+- del bloque finaliza 
+- when others debe ser la ultima clausula de manejo de excepciones.
+- guardar errores en bd para tener nociones de lo que ocurre
+*/
+
+/*
+excepciones predefinidas del servidor oracle
+DUP_VAL_ON_INDEX ORA-00001(error de duplicacion primary key)
+INVALID_CURSOR ORA-01001(cuando cursor no retorna registros)
+INVALID_NUMBER ORA-01722 (cuando se cargan variables largos en var de tamaño pequeño)
+NO_DATA_FOUND ORA-01403 (cuando no encuentra datos en select into)
+TOO_MANY_ROWS ORA-06502 (CUANDO RETORNA MUCHAS FILAS)
+VALUE_ERROR ORA-06502 (cuando se ingresan valores erroneos como number en campo varchar2)
+ZERO_DIVIDE ORA-01476 (cuando se divide el contenido de una variable con valor 0 o nulo)
+*/
+
+--  CONTROLANDO EXCEPCIONES PREDEFINIDAS 
+-- captura no_data_found
+DECLARE
+v_name varchar2(15);
+begin
+ select last_name
+    into v_name
+    from employees
+    where first_name='Juanito';
+    DBMS_OUTPUT.PUT_LINE('Johns last name: '||v_name);
+    exception
+    WHEN TOO_MANY_ROWS THEN
+    dbms_output.put_line('la sentencia select recupera multiples filas');
+    when no_data_found then
+    dbms_output.put_line('la sentencia select no recupera filas');
+    end;
+    
+-- sqlcode entrega numero de error
+-- sqlerrm recupera descripcion de error
+-- varchar para sqlerrm se recomienda de tamaño mayor a 200
+
+-- Bloques anidados para controlar excepciones
+-- cuando hay mas de un cursor usar excepciones para cada bloque
+
+ --exception con nombre (pragma)
+ select * from departments;
+ 
+ declare
+ v_codigo_error number;
+ v_mensaje_error varchar2(255);
+ begin
+    insert into departments
+    values (10,'informatica',200,1700);
+exception
+    when others then
+    v_codigo_error:=sqlcode;
+    v_mensaje_error:=sqlerrm;
+    DBMS_OUTPUT.PUT_LINE('error '|| v_codigo_error);
+    DBMS_OUTPUT.PUT_LINE('mensaje error '|| v_mensaje_error);
+ end;
+ 
+ -- asignar nombre a numero de error
+     
+ declare
+    error_clave_duplicada exception;
+    -- se asocia error -1 con nombre creado de excepcion
+    pragma EXCEPTION_INIT (error_clave_duplicada, -1);
+    v_mensaje_error varchar2(255);
+ begin
+    insert into departments
+    values (10,'informatica',200,1700);
+exception 
+-- cuando ocurre error -1 ocurre excepcion
+    when error_clave_duplicada then
+    DBMS_OUTPUT.PUT_LINE('error clave duplicada');
+    when others then
+    v_mensaje_error:=sqlerrm;
+    DBMS_OUTPUT.PUT_LINE('error codigo'|| sqlcode);
+    DBMS_OUTPUT.PUT_LINE('mensaje error '|| v_mensaje_error);
+ end;
+ ---------------------------
+ --excepcion con raise
+ 
+DECLARE
+    v_edad number;
+    error_edad exception;
+BEGIN
+    v_edad:=&ingrese_edad;
+    if v_edad<18 then
+        raise error_edad;
+    end if;
+    DBMS_OUTPUT.PUT_LINE('es mayor de edad ');
+exception
+    when error_edad then
+    DBMS_OUTPUT.PUT_LINE('es menor de edad: ' || v_edad);
+END;
+-- raise con manejo de sql (update, delete, insert)
+
+declare
+    error_actualizar exception;
+begin
+    update employees set salary=salary+1500
+    where employee_id=99;
+    if sql%notfound then 
+    raise error_actualizar;
+end if;
+    DBMS_OUTPUT.PUT_LINE('hay '|| sql%rowcount||' suertudos');
+exception
+    when error_actualizar then
+        DBMS_OUTPUT.PUT_LINE('no existen suertudos');
+end;
+
+-- raise apllication error (error definido para oracle)
+-- hay numeros predefinidos para asignarle errores creados
+-- no es tan util como gatillar con raise para evitar proceso con mensaje de error
+-- siempre debe decir terminado satisfactoriamente, no como ahora
+declare
+    v_jefe number := 55;
+begin
+    delete from employees where employee_id = v_jefe;
+    if sql%notfound then 
+        raise_application_error(-20000,'no elimino el jefe ' || v_jefe);
+    end if;
+    DBMS_OUTPUT.PUT_LINE('elimino el jefe');
+ end;
+ 
+-- fin manejo de excepciones
+
+-----------------
+/*
+condiciones para hacer la prueba 
+- se debe redondear todo a enteros  
+- funciones parametricas para informacion (BIND)
+- por cada profesional procesado se almacena en detalle_asignacion_mes
+- en resumen_mes_profesion va resumen de profesiones de datos obtenidos en proceso
+- informacion de errores que se deben controlar en el proceso se almacena en tabla errores_p
+- error_id es = a seq_errores
+- BIND para  fechas y valor limite 410.000 de asignacion de pago 
+- VARRAY para: valores de 5 porcentajes de traslado y monto mov fijo
+- record para almacenar informacion. min dos registros
+- estructura for loop y while loop para cursores
+- valores redondeados
+- dos cursores simultaneos para informacion detallada y resumida
+- excepcion definida por usuario para capturar monto total de asignaciones
+- (que no supere los 410.000), se debe interceptar error y guardar en tabla
+- de errores y reemplazar monto calculado de comision por monto limite (410.000)
+- excepciones predefinidas para controlar cualquier error que se produzca de recuperar
+- los % necesarios para calcular asignacion por evaluacion.
+- tabla DETALLE_ASIGNACION info se debe almacenar ordenada en forma ascendente por
+profesion, apellido paterno y nombre del profesional. 
+En tabla resumen ascendente por profesion
+PARA LA PRUEBA. EJECUTAR PROCESO CONSIDERANDO ASESORIAS DEL MES DE JUNIO DE 2021.
+*/
+
+-- obtener numero y monto total de las asesorias de todos los profesionales
+-- en mes de proceso, se debe poder cambiar mes y año (bind)
+DROP SEQUENCE SEQ_ID;
+CREATE SEQUENCE SEQ_ID;
+TRUNCATE TABLE DETALLE_ASIGNACION_MES; 
+TRUNCATE TABLE RESUMEN_MES_PROFESION;
+TRUNCATE TABLE ERRORES_P;
+
+VARIABLE b_mes_proceso number;
+EXEC :b_mes_proceso :=6; 
+VARIABLE b_anno_proceso number;
+EXEC :b_anno_proceso :=2021; 
+
+DECLARE
+    TYPE asesoria_type IS RECORD(
+    mes number,
+    anno number,
+    run number,
+    nombre varchar2(80),
+    profesion varchar2(50),
+    nro_ases number,
+    honorarios number, 
+    asig_mov number,
+    asig_eval number,
+    asig_tipocont number,
+    asig_profesion number,
+    total_asignaciones_profesional number);
+    
+    rec_asesoria asesoria_type;
+  
+  CURSOR cur_asignaciones (p_run number) is
+  select prof.numrun_prof,
+  co.codemp_comuna,
+  sum(ases.honorario)
+  from profesional prof
+  join comuna co on (co.cod_comuna=prof.cod_comuna)
+  join asesoria ases on (ases.numrun_prof=prof.numrun_prof)
+  where numrun_prof = p_run 
+  group by prof.numrun_prof,
+  co.codemp_comuna;
+  
+  CURSOR cur_asesoria is (select
+     EXTRACT(MONTH FROM ases.inicio_asesoria) as mes_proceso,
+     EXTRACT(YEAR FROM ases.inicio_asesoria) as anno_proceso,
+     ases.numrun_prof as numrun_prof,
+     prof.nombre||' '||prof.appaterno||' '||prof.apmaterno as nombre_profesional, 
+     prosion.nombre_profesion as profesion,
+     count(ases.numrun_prof)
+    -- ases.honorario as honorarios
+ 
+     from asesoria ases
+     INNER JOIN profesional prof
+     on (ases.numrun_prof=prof.numrun_prof)
+     INNER JOIN PROFESION prosion ON (prosion.cod_profesion=prof.cod_profesion)
+     WHERE extract(month from inicio_asesoria)=:b_mes_proceso
+     AND extract(YEAR FROM inicio_asesoria)=:b_anno_proceso
+   group by 
+     EXTRACT(MONTH FROM ases.inicio_asesoria), 
+     EXTRACT(YEAR FROM ases.inicio_asesoria),
+     ases.numrun_prof, prof.nombre||' '||prof.appaterno||' '||prof.apmaterno,
+     prosion.nombre_profesion)
+    order by ases.numrun_prof;
+ 
+ BEGIN
+
+open cur_asesoria;
+loop
+ fetch cur_asesoria into rec_asesoria.mes, rec_asesoria.anno,rec_asesoria.run 
+ ,rec_asesoria.nombre,rec_asesoria.profesion,rec_asesoria.nro_ases;
+ exit when cur_asesoria%notfound;
+ 
+ DBMS_OUTPUT.PUT_LINE('mes '||rec_asesoria.mes||' año '||rec_asesoria.anno||
+ ' run '||rec_asesoria.run||' nombre '||rec_asesoria.nombre||' profesion '||
+ rec_asesoria.profesion||' n° asesorias '||rec_asesoria.nro_ases);
+end loop;
+close cur_asesoria;
+end;
+/
+
+declare
+
+ v_exe exception;
+ 
+ CURSOR cur_asignaciones is
+  (select prof.numrun_prof as run,
+  co.codemp_comuna as codemp,
+  sum(ases.honorario) as suma
+  from profesional prof
+  join comuna co on (co.cod_comuna=prof.cod_comuna)
+  join asesoria ases on (ases.numrun_prof=prof.numrun_prof)
+  where EXTRACT(MONTH FROM INICIO_ASESORIA)=6
+  AND EXTRACT (YEAR FROM INICIO_ASESORIA)=2021
+  group by prof.numrun_prof,
+  co.codemp_comuna);
+
+    reg_asignaciones cur_asignaciones %rowtype;
+begin
+    open cur_asignaciones;
+    loop
+    FETCH cur_asignaciones INTO reg_asignaciones;
+    exit when cur_asignaciones%notfound;
+
+    IF reg_asignaciones.suma > 410000 THEN 
+    raise v_exe; 
+    
+    end if;
+    
+
+end loop;
+
+close cur_asignaciones;
+
+end;
+
+
+
+
+ Declare
+  
+	V_numero number;
+	V_exe exception;  -- declarando variable de tipo excepción
+Begin
+
+	V_numero := &ingrese_numero; -- con el & le pediomos al usuario ingresar un numero
+If v_numero > 10 then
+		Dbms_output.put_line('el numero es mayor a 10');
+Else
+	Raise v_exe; -- si numero es menor a 10 ocurre excepción
+End if;
+When v_exe then
+	Dbms_output.put_line('el numero no es mayor a 10');
+  when others then -- captura cualquier excepcion que no coincida con las anteriores
+  DBMS_OUTPUT.put_line('error final');
+
+End; 
+/*
+select numrun_prof,
+count(honorario),
+TO_CHAR(SUM(HONORARIO),'9G999G999')
+from asesoria 
+where EXTRACT(MONTH FROM INICIO_ASESORIA)=6
+AND EXTRACT (YEAR FROM INICIO_ASESORIA)=2021
+group by numrun_prof;
+*/

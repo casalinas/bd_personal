@@ -3151,3 +3151,73 @@ where EXTRACT(MONTH FROM INICIO_ASESORIA)=6
 AND EXTRACT (YEAR FROM INICIO_ASESORIA)=2021
 group by numrun_prof;
 */
+
+-- PRIMER CURSOR FUNCIONAL HASTA EL MOMENTO 
+
+DROP SEQUENCE SEQ_ID;
+CREATE SEQUENCE SEQ_ID;
+TRUNCATE TABLE DETALLE_ASIGNACION_MES; 
+TRUNCATE TABLE RESUMEN_MES_PROFESION;
+TRUNCATE TABLE ERRORES_P;
+
+VARIABLE b_mes_proceso number;
+EXEC :b_mes_proceso :=6; 
+VARIABLE b_anno_proceso number;
+EXEC :b_anno_proceso :=2021; 
+
+DECLARE
+    TYPE asesoria_type IS RECORD(
+    mes number,
+    anno number,
+    run number,
+    nombre varchar2(80),
+    profesion varchar2(50),
+    nro_ases number);
+    
+    rec_asesoria asesoria_type;
+/*  
+  CURSOR cur_asignaciones (p_run number) is
+  select prof.numrun_prof,
+  co.codemp_comuna,
+  sum(ases.honorario)
+  from profesional prof
+  join comuna co on (co.cod_comuna=prof.cod_comuna)
+  join asesoria ases on (ases.numrun_prof=prof.numrun_prof)
+  where numrun_prof = p_run 
+  group by prof.numrun_prof,
+  co.codemp_comuna;
+  */
+  CURSOR cur_asesoria is (select
+     EXTRACT(MONTH FROM ases.inicio_asesoria) as mes_proceso,
+     EXTRACT(YEAR FROM ases.inicio_asesoria) as anno_proceso,
+     ases.numrun_prof as numrun_prof,
+     prof.nombre||' '||prof.appaterno||' '||prof.apmaterno as nombre_profesional, 
+     prosion.nombre_profesion as profesion,
+     count(ases.numrun_prof)
+     
+     from asesoria ases
+     INNER JOIN profesional prof
+     on (ases.numrun_prof=prof.numrun_prof)
+     INNER JOIN PROFESION prosion ON (prosion.cod_profesion=prof.cod_profesion)
+     WHERE extract(month from inicio_asesoria)=:b_mes_proceso
+     AND extract(YEAR FROM inicio_asesoria)=:b_anno_proceso
+   group by 
+     EXTRACT(MONTH FROM ases.inicio_asesoria), 
+     EXTRACT(YEAR FROM ases.inicio_asesoria),
+     ases.numrun_prof, prof.nombre||' '||prof.appaterno||' '||prof.apmaterno,
+     prosion.nombre_profesion)
+    order by ases.numrun_prof;
+ BEGIN
+    open cur_asesoria;
+    loop
+     fetch cur_asesoria into rec_asesoria.mes, rec_asesoria.anno,rec_asesoria.run 
+     ,rec_asesoria.nombre,rec_asesoria.profesion,rec_asesoria.nro_ases;
+     exit when cur_asesoria%notfound;
+ 
+ DBMS_OUTPUT.PUT_LINE('mes '||rec_asesoria.mes||' año '||rec_asesoria.anno||
+ ' run '||rec_asesoria.run||' nombre '||rec_asesoria.nombre||' profesion '||
+ rec_asesoria.profesion||' n° asesorias '||rec_asesoria.nro_ases);
+end loop;
+close cur_asesoria;
+end;
+/

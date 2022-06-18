@@ -4,14 +4,14 @@ char: cadena de caracteres de longitud fija (rellena con
 espacios en blanco si se ponen menos caracteres),
 por defecto es 1 byte
 
-varchar2: cadena de caracteres de longitud variable, 
+variablechar2: cadena de caracteres de longitud variableiable, 
 tamaño maximo de n bytes, obligatorio asignar un tamaño
 
 number: numerico, no es obligatorio especificar tamaño
 
 date: tipo fecha, desde -4712 hasta el 9999
 
-long: para albergar caracteres de longitud variable,
+long: para albergar caracteres de longitud variableiable,
 hasta 2gb, se recomienda no usar
 
 clob: alberga caracteres multi-byte o single-byte
@@ -21,7 +21,7 @@ nclob: igual que clob pero con caracteres unicode,
 almacena cadenas de caracteres de tipo nacional de
 distintos lenguajes
 
-raw: datos binarios, mismos limites que varchar2
+raw: datos binarios, mismos limites que variablechar2
 
 blob: objeto binario hasta 4gb
 
@@ -31,7 +31,7 @@ se guardan afuera de la bd
 rowid: representa el id unico de una fila
 
 timestamp: fecha que almacena fracciones de segundo,
-hay variaciones como with timezone o with 
+hay variableiaciones como with timezone o with 
 localtimezone
 
 interval year to month: almacena tiempo como intervalo
@@ -54,7 +54,7 @@ proyección: recuperar columnas de una tabla
 seleccion: recuperar filas de una tabla
 
 joins: recuperar informacion de manera conjunta
-de varias tablas.
+de variableias tablas.
 
 proyeccion, seleccionar algunas columnas
 
@@ -67,7 +67,7 @@ SELECT DATOS FROM TABLA
 primeros pasos select.
 
 es necesario poner ; al final de las sentencias para poder
-ejecutarlas ordenadamente cuando existan varias en una hoja
+ejecutarlas ordenadamente cuando existan variableias en una hoja
 de trabajo.
 
 Bases de datos oracle, probando las funcionalidades.
@@ -101,7 +101,7 @@ EJEMPLO BETWEEN: SELECT * FROM EMPLOYEES
 WHERE SALARY BETWEEN 5000 AND 6000;
 (muestra todos los empleados con salarios entre 5000 y 6000)
 
-IN: Esta funcion permite poner varias cualidades que queremos que se cumplan, por ejemplo empleados del departamento 50 y 60, el in se pone despues del where y la condicion va entre ()
+IN: Esta funcion permite poner variableias cualidades que queremos que se cumplan, por ejemplo empleados del departamento 50 y 60, el in se pone despues del where y la condicion va entre ()
 
 EJEMPLO IN: SELECT * FROM EMPLOYEES WHERE department_id IN (50,60);
 (muestra empleados del departamento 50 y 60)
@@ -1200,7 +1200,7 @@ FOR i IN C1 LOOP
      END;
      -- ACTUALIZAR DATOS CON CURSOR
      -- where current of significa que afecte a la fila en la que este en ese momento del cursor
-     -- rowtype es que convierta la variable del tipo de toda la fila de la tabla asignada
+     -- rowtype es que convierta la variableiable del tipo de toda la fila de la tabla asignada
      --for update es para poder posteriormente actualizar datos
      DECLARE
      empl employees%rowtype;
@@ -1326,7 +1326,7 @@ EXCEPCIONES
 Declare
   
 	V_numero number;
-	V_exe exception;  -- declarando variable de tipo excepción
+	V_exe exception;  -- declarando variableiable de tipo excepción
 Begin
 
 	V_numero := &ingrese_numero; -- con el & le pediomos al usuario ingresar un numero
@@ -1346,7 +1346,7 @@ End;
 Declare
   
 	V_numero number;
-	V_exe exception;  -- declarando variable de tipo excepción
+	V_exe exception;  -- declarando variableiable de tipo excepción
 Begin
 
 	V_numero := &ingrese_numero; -- con el & le pedimos al usuario ingresar un numero
@@ -1380,8 +1380,8 @@ End;
 --pl 
 
 Declare
-v_nombre varchar2(45);
-v_apellido varchar2(45);
+v_nombre variablechar2(45);
+v_apellido variablechar2(45);
 begin
     select first_name,last_name
     INTO v_nombre,v_apellido
@@ -1433,10 +1433,10 @@ begin
 
   -- para ejecutar procedimiento credado
 
-  execute sp_ejemplo; -- para cuando no tiene parametros
+  executeute sp_ejemplo; -- para cuando no tiene parametros
 
-  execute sp_ejemplo(num1,num2); -- cuando tiene parametros forma 1
-  execute sp_ejemplo(&ingrese_num1,&ingrese_num2); -- forma 2 de ejecucion con parametros
+  executeute sp_ejemplo(num1,num2); -- cuando tiene parametros forma 1
+  executeute sp_ejemplo(&ingrese_num1,&ingrese_num2); -- forma 2 de ejecucion con parametros
 
 -------------------------------------------------------------
 -- creando una funcion
@@ -1444,7 +1444,7 @@ create or replace
 function fn_ejemplo(p_num1 number,p_num2 number)
 return number -- se dice que tipo de dato retorna siempre
 is
-    -- declaracion de variables
+    -- declaracion de variableiables
     v_total number;
 begin
     v_total:=p_num1+p_num2;
@@ -1493,7 +1493,7 @@ begin
 function fn_ejemplo(p_num1 number,p_num2 number)
 return number -- se dice que tipo de dato retorna siempre
 is -- is es como el declare 
-    -- declaracion de variables
+    -- declaracion de variableiables
     v_total number;
 begin
     v_total:=p_num1+p_num2;
@@ -1502,16 +1502,16 @@ end;
 end;
 -- fin body 
 -- ejecucion de procedimiento dentro de package
-execute pkg_ejemplo.sp_ejemplo(14,50);
+executeute pkg_ejemplo.sp_ejemplo(14,50);
 
 
 -- USO SE EXCEPCIONES para errores comunes 
 ----------------------------------------------------------------
 declare
     v_codigo number;
-    v_nombre varchar2(45);
-    v_apellido varchar2(45);
-    v_email varchar2(45);
+    v_nombre variablechar2(45);
+    v_apellido variablechar2(45);
+    v_email variablechar2(45);
 begin
     select 
     e.employee_id,
@@ -1558,11 +1558,11 @@ c_iva
 end;
 -----------------------
 /
--- usando variables en bloque pl/sql
-VARIABLE numero number;
-exec :numero := 115
+-- usando variableiables en bloque pl/sql
+variableIABLE numero number;
+execute :numero := 115
 declare 
-v_apellido varchar2(45);
+v_apellido variablechar2(45);
 begin
     select last_name
     into v_apellido 
@@ -1570,10 +1570,10 @@ begin
     DBMS_OUTPUT.PUT_LINE('Apellido del empleado '||:numero||' es '||v_apellido );
 end;
 /
--- probando type y la inserción de datos de tablas en variables
+-- probando type y la inserción de datos de tablas en variableiables
 declare
-    v_nombre employees.first_name%type; -- type dice que variable nombre sera del mismo tipo que el campo first_name de la tabla employees
-    v_apellido varchar2(45);
+    v_nombre employees.first_name%type; -- type dice que variableiable nombre sera del mismo tipo que el campo first_name de la tabla employees
+    v_apellido variablechar2(45);
     v_id number;
 begin
     select first_name, last_name, employee_id
@@ -1583,7 +1583,7 @@ begin
 end;
 /
 /*
-Requisitos para nombrar variables
+Requisitos para nombrar variableiables
 A. Debe comenzar con una letra
 B. Puede incluid caracteres especiales
 como :$,_ y #. (aún asi no recomendado)
@@ -1592,24 +1592,24 @@ D. No debe contener palabras reservadas
 E. Debe tener un largo máximo de 30 caracteres
 
 La Sintaxis considera:
-identificador: es el nombre de variable
-constant: indica que valor de variable no puede modificarse, deben inicializarse
-tipo dato: indica que la variable es del tipo escalar, compuesto o lob
-not null: indica que variable debe contener siempre un valor, debe ser inicializada
-expr: es cualquier expresion pl/sql que puede ser expresion literal, otra variable
+identificador: es el nombre de variableiable
+constant: indica que valor de variableiable no puede modificarse, deben inicializarse
+tipo dato: indica que la variableiable es del tipo escalar, compuesto o lob
+not null: indica que variableiable debe contener siempre un valor, debe ser inicializada
+expr: es cualquier expresion pl/sql que puede ser expresion literal, otra variableiable
 o incluso una expresion que utiliza una función.
 
-Consideraciones para Declarar e inicializar variables pl/sql
-- usar las convenciones de nombres para variables
-- usar nombres de variables significativos
-- Inicializar variables con not null y constant
-- inicializar variables con := o Default
+Consideraciones para Declarar e inicializar variableiables pl/sql
+- usar las convenciones de nombres para variableiables
+- usar nombres de variableiables significativos
+- Inicializar variableiables con not null y constant
+- inicializar variableiables con := o Default
 - Declarar un identificador por linea
 - Evitar usar nombre de columnas como identificadores
-- Usar not null cuando la variable debe almacenar un valor
+- Usar not null cuando la variableiable debe almacenar un valor
 
-- Tipos de datos escalares: tienen un solo valor, depende del tipo de dato de var
-- tipos de datos compuestos: recuperan varios datos 
+- Tipos de datos escalares: tienen un solo valor, depende del tipo de dato de variable
+- tipos de datos compuestos: recuperan variableios datos 
 - tipos de datos de referencia: tienen valores llamados punteros que apuntan a un lugar
 de almacenamiento (ej cursor)
 
@@ -1617,30 +1617,30 @@ D. Tipos de datos lob: tienen valores llamados localizadores que especifican
 la ubicacion de los objetos grandes (como imagenes) que se almacenan fuera de la
 tabla.
 
-E. Variables Bind: No estan declaradas dentro del bloque, sino que fuera como
-variables globales, estas pueden ser utilizadas por varios bloques
+E. variableiables Bind: No estan declaradas dentro del bloque, sino que fuera como
+variableiables globales, estas pueden ser utilizadas por variableios bloques
 */
 -- DIA 2 TAV    
 /*
 La Sintaxis considera:
-identificador: es el nombre de variable
-constant: indica que valor de variable no puede modificarse, deben inicializarse
-tipo dato: indica que la variable es del tipo escalar, compuesto o lob
-not null: indica que variable debe contener siempre un valor, debe ser inicializada
-expr: es cualquier expresion pl/sql que puede ser expresion literal, otra variable
+identificador: es el nombre de variableiable
+constant: indica que valor de variableiable no puede modificarse, deben inicializarse
+tipo dato: indica que la variableiable es del tipo escalar, compuesto o lob
+not null: indica que variableiable debe contener siempre un valor, debe ser inicializada
+expr: es cualquier expresion pl/sql que puede ser expresion literal, otra variableiable
 o incluso una expresion que utiliza una función.
 
-Consideraciones para Declarar e inicializar variables pl/sql
-- usar las convenciones de nombres para variables
-- usar nombres de variables significativos
-- Inicializar variables con not null y constant
-- inicializar variables con := o Default
+Consideraciones para Declarar e inicializar variableiables pl/sql
+- usar las convenciones de nombres para variableiables
+- usar nombres de variableiables significativos
+- Inicializar variableiables con not null y constant
+- inicializar variableiables con := o Default
 - Declarar un identificador por linea
 - Evitar usar nombre de columnas como identificadores
-- Usar not null cuando la variable debe almacenar un valor
+- Usar not null cuando la variableiable debe almacenar un valor
 
-- Tipos de datos escalares: tienen un solo valor, depende del tipo de dato de var
-- tipos de datos compuestos: recuperan varios datos 
+- Tipos de datos escalares: tienen un solo valor, depende del tipo de dato de variable
+- tipos de datos compuestos: recuperan variableios datos 
 - tipos de datos de referencia: tienen valores llamados punteros que apuntan a un lugar
 de almacenamiento (ej cursor)
 
@@ -1648,8 +1648,8 @@ D. Tipos de datos lob: tienen valores llamados localizadores que especifican
 la ubicacion de los objetos grandes (como imagenes) que se almacenan fuera de la
 tabla.
 
-E. Variables Bind: No estan declaradas dentro del bloque, sino que fuera como
-variables globales, estas pueden ser utilizadas por varios bloques
+E. variableiables Bind: No estan declaradas dentro del bloque, sino que fuera como
+variableiables globales, estas pueden ser utilizadas por variableios bloques
 */
 
 ---------------------------------------------------------------------------------------
@@ -1662,8 +1662,8 @@ ej simbolos compuestos:
  :=
  =>
  ||
- (/ *) delimitador de inicio de comentario de varias lineas
- (* /)delimitador de fin comentario varias lineas
+ (/ *) delimitador de inicio de comentario de variableias lineas
+ (* /)delimitador de fin comentario variableias lineas
   .. operador de rango
  <> operador de distinto
  != operador distinto
@@ -1672,7 +1672,7 @@ ej simbolos compuestos:
  -- comentario de una linea
 
 Existen identificadores especiales denominados palabras reservadas,
-no se pueden utilizar para declarar variables
+no se pueden utilizar para declarar variableiables
 - las buenas practicas permiten construid un codigo claro y de mantancion
 mas facil
 
@@ -1686,12 +1686,12 @@ del codigo de un bloque
 * tipos de datos
 
 - Escribir en minusculas
-* identificadores variables
+* identificadores variableiables
 * parametros
 * nombres de tablas y columnas
 
 - Indentar el codigo
-- Nombre estandar de variables, comienzan von v (v_var)
+- Nombre estandar de variableiables, comienzan von v (v_variable)
 - Nombre de constantes estandar: comienza con c (c_cons)
 - nombre registros estandar: comienzan con reg (reg_empleado)
 - Nombre de cursores estandar: cur (cur_cursor)
@@ -1724,7 +1724,7 @@ Funciones No Disponibles: solo pueden ser usadas en sentencias sql
 -- del id 120
 
 declare
-v_nombre_completo varchar2(80);
+v_nombre_completo variablechar2(80);
 v_depto departments.department_name%type;
 v_comission employees.commission_pct%type;
 begin
@@ -1745,7 +1745,7 @@ select sysdate from dual;
 ----------------------------
 create table xxx(
     id number primary key,
-    nombre varchar2(45)
+    nombre variablechar2(45)
 );
 
 create sequence seq_xxx;
@@ -1806,16 +1806,16 @@ rollback; -- se recuperan con volver atras en rollback
 select * from copia_empleados;
 /*
 las consultas select into deben recuperar solo un valor
-cada valor se debe almacenar en una variable mediante clausula into
-debe retornar solo una fila cuando se utilizan variables escalares
+cada valor se debe almacenar en una variableiable mediante clausula into
+debe retornar solo una fila cuando se utilizan variableiables escalares
 si quiere recuperar multiples filas debe utilizar cursores
 
 - Convenciones de Nombres
 * usar convenciones para evitar ambigüedades en clausula where
 * evitar nombre de columnas de bd para identificadores
 * nombres de columnas de tablas de bd tienen precedencia
-por sobre los nombres de var locales
-* nombres de var locales y parametros formales tienen prioridad por sobre
+por sobre los nombres de variable locales
+* nombres de variable locales y parametros formales tienen prioridad por sobre
 los nombres de la tabla de la base de datos
 
 - Manipulación de Datos en pl/sql
@@ -1848,10 +1848,10 @@ luego de ejecutarse una sentencia rollback
 Conversion de Tipo de datos
 
 - CONVERSION IMPLICITA (Es Automatica)
-- de VARCHAR2 o CHAR  a NUMBER.
-- de varchar2 o char a date
-- de number a varchar2
-- de date a varchar2
+- de variableCHAR2 o CHAR  a NUMBER.
+- de variablechar2 o char a date
+- de number a variablechar2
+- de date a variablechar2
 
 - CONVERSION EXPLICITA (Es manual mediante funciones predefinidas en sql)
 - TO_CHAR
@@ -1940,7 +1940,7 @@ group by cli.nombre);
 
 declare
     v_run cliente.rutcliente%type;
-    v_nombre varchar2(50);
+    v_nombre variablechar2(50);
     v_sum number;
 begin
 select cli.rutcliente, 
@@ -2053,7 +2053,7 @@ commit;
 select * from tramo_notas;
 
 -- añadimos columna a tramo_notas
-alter table tramo_notas add situacion varchar2(45);
+alter table tramo_notas add situacion variablechar2(45);
 
 -- seteamos nuevo campo situacion de tabla tramo_notas
 update tramo_notas set situacion ='Reprobado' where id = 1;
@@ -2084,16 +2084,16 @@ end;
 /
 -- Expresiones CASE
 -- retorna un resultado basado en una o mas alternativas
--- CUANDO SE ANTEPONE UNA VARIABLE AL CASE (V_VAR := CASE), el case termina con 'END';
+-- CUANDO SE ANTEPONE UNA variableIABLE AL CASE (V_variable := CASE), el case termina con 'END';
 -- CUANDO NO SE ANTEPONE, SE TERMINA CON 'END CASE';
 declare
-    v_categoria varchar2(1):='A';
+    v_categoria variablechar2(1):='A';
     v_sueldo number :=0;
     v_bono number :=0;
 begin
     v_categoria:='&ingrese_categoria';
     v_sueldo:=&ingrese_sueldo;
-    v_bono:= CASE -- CASE termina con end cuando se antepone variable
+    v_bono:= CASE -- CASE termina con end cuando se antepone variableiable
                 WHEN v_categoria='A' and v_sueldo <1500 then 520
                 WHEN v_categoria='A' and (v_sueldo >= 1500 and v_sueldo <= 3000) then 420
             else
@@ -2103,7 +2103,7 @@ begin
 end;
 /
 declare 
-    v_categoria varchar2(1):='A';
+    v_categoria variablechar2(1):='A';
 begin
     v_categoria:=UPPER('&Ingrese_categoria');
     case
@@ -2151,7 +2151,7 @@ declare
 begin
     loop
         dbms_output.put_line('Contador: '|| v_cont);
-    v_cont := v_cont+1; -- aumenta valor de variable
+    v_cont := v_cont+1; -- aumenta valor de variableiable
     exit when v_cont= 15; -- condicion de salida
     end loop;
 end;
@@ -2172,7 +2172,7 @@ end;
 declare
     
 begin
-    for v_cont in 1..10 -- v_cont es una variable temporal del for la cual se puede
+    for v_cont in 1..10 -- v_cont es una variableiable temporal del for la cual se puede
                         -- utilizar dentro del loop, y los .. significan 'hasta'
                         -- ( for (para) v_cont in desde..hasta)
     loop
@@ -2184,7 +2184,7 @@ end;
 
 -- registros en for
 declare
-    v_cate varchar2(45);
+    v_cate variablechar2(45);
 begin
     for reg in (select first_name, salary from employees)
     loop
@@ -2204,7 +2204,7 @@ end;
 ---------------------------------------------------------------------------------
 -- CLASE 7, COMIENZA LA SEGUNDA UNIDAD
 /*
-tipo de variables lob
+tipo de variableiables lob
 * LOBS (largo objetos) el medio para almacenar datos grandes
 * CLOB: usado para caracteres largos (libros), reemplaza al tipo long, esta dentro de bd
 * BFILE: se guarda una referencia, indicando una ruta (vinculo), que apunta a la
@@ -2230,7 +2230,7 @@ Package Oracle DBMS_LOB tiene las opciones:
 si devuelve 1 existe, con 0 no existe
 
 - FILEGETNAME: Devuelve el Directorio + archivo asociado a ese localizador, dentro de 
-las variables indicadas.
+las variableiables indicadas.
 
 - GETLENGHT: devuelve tamaño en bytes
 -  LOADFROMFILE: Se usa para leer todo o parte de un archivo (se usara harto) 
@@ -2245,7 +2245,7 @@ las variables indicadas.
 
 -- creacion de objetos clob
 create table informe(
-    rut varchar2(45),
+    rut variablechar2(45),
     comentario clob DEFAULT empty_clob()
 );
 -- insertar registro en informe
@@ -2259,7 +2259,7 @@ declare
 begin
     select comentario into v_clob
     from informe where rut='19913649-6' for update; -- for update significa que
-    -- lo que le pase a la variable que guarda v_clob sera lo mismo que cambie en campo comentario
+    -- lo que le pase a la variableiable que guarda v_clob sera lo mismo que cambie en campo comentario
     select length(' hombre de familia') into v_largo from dual;
     dbms_lob.writeappend(v_clob,v_largo,' hombre de familia');
     commit;
@@ -2269,7 +2269,7 @@ select * from informe;
 -- insertar imagenes
 create table vacaciones2021(
     cod number primary key,
-    descripcion varchar2(80),
+    descripcion variablechar2(80),
     foto blob default empty_blob()
 );
 select * from vacaciones2021;
@@ -2283,7 +2283,7 @@ grant read, write on directory OBJ_VACACIONES TO prueba1_tav_freddie;
 declare
     v_blob blob; --guarda la foto como binario
     v_bfile bfile; -- dice donde esta la foto fisicamente en el disco
-    v_foto varchar2(80); -- indica como se llama la foto
+    v_foto variablechar2(80); -- indica como se llama la foto
 begin
     insert into vacaciones2021 values(1,'cartagena en cuarentena',empty_blob())
     RETURNING foto into v_blob; -- se hace lo mismo que con for update
@@ -2311,7 +2311,7 @@ grant read, write on directory OBJ_ALUMNO to prueba1_tav_cristian;
 declare
     v_blob blob;
     v_bfile bfile;
-    v_foto varchar2(80);
+    v_foto variablechar2(80);
 begin -- proceso se deja dentro del bloque para capturar excepcion
     for x in (select * from alumno)
     loop
@@ -2319,7 +2319,7 @@ begin -- proceso se deja dentro del bloque para capturar excepcion
         v_foto:= x.cod_alumno||'.jpg';
         
         select foto into v_blob 
-        from alumno where cod_alumno=x.cod_alumno for update; -- for update hace que cualquier cosa que le pase a variable le pasa a foto
+        from alumno where cod_alumno=x.cod_alumno for update; -- for update hace que cualquier cosa que le pase a variableiable le pasa a foto
     
         v_bfile:=bfilename('OBJ_ALUMNO',v_foto);
         dbms_lob.open(v_bfile, dbms_lob.lob_readonly);
@@ -2342,8 +2342,8 @@ select * from alumno;
 declare
     v_blob blob;
     v_bfile bfile;
-    v_foto varchar2(300);
-    v_mensaje_error varchar2(300);
+    v_foto variablechar2(300);
+    v_mensaje_error variablechar2(300);
 begin
     for x in (select * from alumno)
     loop
@@ -2377,8 +2377,8 @@ alter table alumno add foto blob DEFAULT empty_blob();
 drop table error_fotografias;
 create table error_fotografias(
     id number primary key,
-    descripcion varchar2(300),
-    foto varchar2(300)
+    descripcion variablechar2(300),
+    foto variablechar2(300)
 );
 commit;
 
@@ -2393,8 +2393,8 @@ grant read, write on directory OBJ_ESTUDIANTES to prueba2_tav_freddie;
 declare
     v_blob blob;
     v_bfile bfile;
-    v_foto varchar2(300);
-    v_mensaje_error varchar2(300);
+    v_foto variablechar2(300);
+    v_mensaje_error variablechar2(300);
 begin
     for x in (select * from alumno)
     loop
@@ -2418,12 +2418,12 @@ begin
     end loop;
 end;
 ----------------------------------------------------------------------
--- objetos compuestos, son como variables pero con tipo
+-- objetos compuestos, son como variableiables pero con tipo
 declare 
     type tipo_reg is record(
-        nombre varchar2(45),
+        nombre variablechar2(45),
         edad number(3),
-        rut varchar2(12)
+        rut variablechar2(12)
     );
     reg_emp tipo_reg;
 begin
@@ -2460,7 +2460,7 @@ end;
 -- creacion de tabla y recorrer con for
 
 declare
-    type comunas is table of varchar2(100) 
+    type comunas is table of variablechar2(100) 
     index by pls_integer;-- indexar sirve para reorganizar
     v_comunas comunas;
 begin
@@ -2481,7 +2481,7 @@ end;
 -- creacion de cursor basico
 declare
     cursor cur_profesores is select * from profesor;
-    reg_profesores cur_profesores%rowtype; -- rowtype hace la variable del tipo de fila cursor (tabla)
+    reg_profesores cur_profesores%rowtype; -- rowtype hace la variableiable del tipo de fila cursor (tabla)
 begin
     -- un cursor primero se abre
     open cur_profesores;
@@ -2528,7 +2528,7 @@ que cursores implicitos solo pueden recuperar una fila
 -- ejemplo de error con excepcion
 -- DEBEMOS DEJAR CONSTANCIA DE ERRROES INSERTANDOLOS EN UNA TABLA
 declare
-v_apellido VARCHAR2(50);
+v_apellido variableCHAR2(50);
 begin
 select LAS_NAME
   into v_apellido
@@ -2548,7 +2548,7 @@ end;
 
 DECLARE
     v_cod alumno.cod_alumno%type;
-    v_error varchar2(300);
+    v_error variablechar2(300);
 BEGIN
     select cod_alumno into v_cod
     from alumno
@@ -2560,7 +2560,7 @@ exception
     when too_many_rows then
     DBMS_OUTPUT.PUT_LINE('muchas filas de retorno');
     when others then -- siempre es bueno usar when others para errores desconocidos
-    -- y aplicar variable para insertar cual es el error
+    -- y aplicar variableiable para insertar cual es el error
     v_error:= sqlerrm;
     DBMS_OUTPUT.PUT_LINE('Error: ' || v_error);
 END;
@@ -2607,7 +2607,7 @@ begin
     end loop;
     close cur_alumnos;
 end;
--- creacion de cursor con registro como variable compuesta
+-- creacion de cursor con registro como variableiable compuesta
 declare
     cursor cur_alumnos is
     (select cod_alumno, numrut, dvrut from alumno);
@@ -2631,7 +2631,7 @@ create table clie2 as
 -- manera independiente
 create table clie(
     run number primary key,
-    dv_run varchar2(1)
+    dv_run variablechar2(1)
 );
 
 declare
@@ -2679,7 +2679,7 @@ declare
     reg_cli cur_clientes%rowtype;
     reg_cre cur_creditos%rowtype;
     v_total number:=0;
-    v_nombre varchar2(100);
+    v_nombre variablechar2(100);
 begin
     open cur_clientes;
     loop
@@ -2699,13 +2699,13 @@ end loop;
 close cur_clientes;
 end;
 
--- ejemplo varray
+-- ejemplo variableray
 /*
 1.define, 2.declara, 3.inicializa, 4.asigna, 5.accede
 */
 -- se define con type
 declare
-TYPE V_array_type IS varray(7) OF VARCHAR2(30);
+TYPE V_array_type IS variableray(7) OF variableCHAR2(30);
 
 -- se declara e inicializa
 v_day V_array_type :=V_array_type(null,null,null,
@@ -2741,16 +2741,16 @@ pero no la tabla.
 - y drop borra todo, tanto tabla como sus datos
 
 parametros formale
-son variables declaradas en la lista de parametros del
+son variableiables declaradas en la lista de parametros del
 subprograma(modo in, out o in out) por defecto es in,
 se usan en la seccion de ejecucion.
 
 parametros actuales.
-son valores, variables o expresiones usados para ejecutar un subprograma 
+son valores, variableiables o expresiones usados para ejecutar un subprograma 
 con parametros. se asocian a los parametros formales del sub
 programa.
 
-varray tiene un solo tipo de dato
+variableray tiene un solo tipo de dato
 in out manda un valor adentro y se pide que retorne un resultado
 
 primer cursor tiene relacion de uno a muchos para el segundo
@@ -2767,7 +2767,7 @@ condiciones para hacer la prueba
 - informacion de errores que se deben controlar en el proceso se almacena en tabla errores_p
 - error_id es = a seq_errores
 - BIND para  fechas y valor limite 410.000 de asignacion de pago 
-- VARRAY para: valores de 5 porcentajes de traslado y monto mov fijo
+- variableRAY para: valores de 5 porcentajes de traslado y monto mov fijo
 - record para almacenar informacion. min dos registros
 - estructura for loop y while loop para cursores
 - valores redondeados
@@ -2791,18 +2791,18 @@ TRUNCATE TABLE DETALLE_ASIGNACION_MES;
 TRUNCATE TABLE RESUMEN_MES_PROFESION;
 TRUNCATE TABLE ERRORES_P;
 
-VARIABLE b_mes_proceso number;
-EXEC :b_mes_proceso :=6; 
-VARIABLE b_anno_proceso number;
-EXEC :b_anno_proceso :=2021; 
+variableIABLE b_mes_proceso number;
+execute :b_mes_proceso :=6; 
+variableIABLE b_anno_proceso number;
+execute :b_anno_proceso :=2021; 
 
 DECLARE
     TYPE asesoria_type IS RECORD(
     mes number,
     anno number,
     run number,
-    nombre varchar2(80),
-    profesion varchar2(50),
+    nombre variablechar2(80),
+    profesion variablechar2(50),
     nro_ases number,
     honorarios number, 
     asig_mov number,
@@ -2855,7 +2855,7 @@ end;
 - que no podemos manejar
 
 - exception comienza la seccion de manejo de excepciones
-- se pueden crear varios controladores de excepciones
+- se pueden crear variableios controladores de excepciones
 - solo un gestor de excepciones es procesado antes qde que la ejecucion
 - del bloque finaliza 
 - when others debe ser la ultima clausula de manejo de excepciones.
@@ -2866,17 +2866,17 @@ end;
 excepciones predefinidas del servidor oracle
 DUP_VAL_ON_INDEX ORA-00001(error de duplicacion primary key)
 INVALID_CURSOR ORA-01001(cuando cursor no retorna registros)
-INVALID_NUMBER ORA-01722 (cuando se cargan variables largos en var de tamaño pequeño)
+INVALID_NUMBER ORA-01722 (cuando se cargan variableiables largos en variable de tamaño pequeño)
 NO_DATA_FOUND ORA-01403 (cuando no encuentra datos en select into)
 TOO_MANY_ROWS ORA-06502 (CUANDO RETORNA MUCHAS FILAS)
-VALUE_ERROR ORA-06502 (cuando se ingresan valores erroneos como number en campo varchar2)
-ZERO_DIVIDE ORA-01476 (cuando se divide el contenido de una variable con valor 0 o nulo)
+VALUE_ERROR ORA-06502 (cuando se ingresan valores erroneos como number en campo variablechar2)
+ZERO_DIVIDE ORA-01476 (cuando se divide el contenido de una variableiable con valor 0 o nulo)
 */
 
 --  CONTROLANDO EXCEPCIONES PREDEFINIDAS 
 -- captura no_data_found
 DECLARE
-v_name varchar2(15);
+v_name variablechar2(15);
 begin
  select last_name
     into v_name
@@ -2892,7 +2892,7 @@ begin
     
 -- sqlcode entrega numero de error
 -- sqlerrm recupera descripcion de error
--- varchar para sqlerrm se recomienda de tamaño mayor a 200
+-- variablechar para sqlerrm se recomienda de tamaño mayor a 200
 
 -- Bloques anidados para controlar excepciones
 -- cuando hay mas de un cursor usar excepciones para cada bloque
@@ -2902,7 +2902,7 @@ begin
  
  declare
  v_codigo_error number;
- v_mensaje_error varchar2(255);
+ v_mensaje_error variablechar2(255);
  begin
     insert into departments
     values (10,'informatica',200,1700);
@@ -2920,7 +2920,7 @@ exception
     error_clave_duplicada exception;
     -- se asocia error -1 con nombre creado de excepcion
     pragma EXCEPTION_INIT (error_clave_duplicada, -1);
-    v_mensaje_error varchar2(255);
+    v_mensaje_error variablechar2(255);
  begin
     insert into departments
     values (10,'informatica',200,1700);
@@ -2991,7 +2991,7 @@ condiciones para hacer la prueba
 - informacion de errores que se deben controlar en el proceso se almacena en tabla errores_p
 - error_id es = a seq_errores
 - BIND para  fechas y valor limite 410.000 de asignacion de pago 
-- VARRAY para: valores de 5 porcentajes de traslado y monto mov fijo
+- variableRAY para: valores de 5 porcentajes de traslado y monto mov fijo
 - record para almacenar informacion. min dos registros
 - estructura for loop y while loop para cursores
 - valores redondeados
@@ -3015,18 +3015,18 @@ TRUNCATE TABLE DETALLE_ASIGNACION_MES;
 TRUNCATE TABLE RESUMEN_MES_PROFESION;
 TRUNCATE TABLE ERRORES_P;
 
-VARIABLE b_mes_proceso number;
-EXEC :b_mes_proceso :=6; 
-VARIABLE b_anno_proceso number;
-EXEC :b_anno_proceso :=2021; 
+variableIABLE b_mes_proceso number;
+execute :b_mes_proceso :=6; 
+variableIABLE b_anno_proceso number;
+execute :b_anno_proceso :=2021; 
 
 DECLARE
     TYPE asesoria_type IS RECORD(
     mes number,
     anno number,
     run number,
-    nombre varchar2(80),
-    profesion varchar2(50),
+    nombre variablechar2(80),
+    profesion variablechar2(50),
     nro_ases number,
     honorarios number, 
     asig_mov number,
@@ -3127,7 +3127,7 @@ end;
  Declare
   
 	V_numero number;
-	V_exe exception;  -- declarando variable de tipo excepción
+	V_exe exception;  -- declarando variableiable de tipo excepción
 Begin
 
 	V_numero := &ingrese_numero; -- con el & le pediomos al usuario ingresar un numero
@@ -3160,18 +3160,18 @@ TRUNCATE TABLE DETALLE_ASIGNACION_MES;
 TRUNCATE TABLE RESUMEN_MES_PROFESION;
 TRUNCATE TABLE ERRORES_P;
 
-VARIABLE b_mes_proceso number;
-EXEC :b_mes_proceso :=6; 
-VARIABLE b_anno_proceso number;
-EXEC :b_anno_proceso :=2021; 
+variableIABLE b_mes_proceso number;
+execute :b_mes_proceso :=6; 
+variableIABLE b_anno_proceso number;
+execute :b_anno_proceso :=2021; 
 
 DECLARE
     TYPE asesoria_type IS RECORD(
     mes number,
     anno number,
     run number,
-    nombre varchar2(80),
-    profesion varchar2(50),
+    nombre variablechar2(80),
+    profesion variablechar2(50),
     nro_ases number);
     
     rec_asesoria asesoria_type;

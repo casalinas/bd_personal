@@ -1,0 +1,58 @@
+SET SERVEROUTPUT ON;
+
+DECLARE
+v_contador NUMBER:=1;
+v_puntos NUMBER:=0;
+--VARRAY 
+    TYPE vary IS VARRAY(4) OF NUMBER;
+     vry_puntos vary := vary(300,550,700,250);
+--DECLARAR CURSOR
+    CURSOR cur_trans IS SELECT  
+                        c.numrun AS rut,c.dvrun AS dvrut,tc.nro_tarjeta AS nro_tarjeta,c.cod_tipo_cliente AS tipo_cliente, 
+                        ttc.nro_transaccion AS nro_trans, ttc.fecha_transaccion AS fecha_trans,
+                        ttt.nombre_tptran_tarjeta AS tipo_trans,ttc.monto_transaccion AS monto_trans
+                        FROM tarjeta_cliente tc
+                        INNER JOIN cliente c
+                            ON tc.numrun = c.numrun
+                        INNER JOIN transaccion_tarjeta_cliente ttc
+                            ON ttc.nro_tarjeta = tc.nro_tarjeta
+                        INNER JOIN tipo_transaccion_tarjeta ttt
+                            ON ttt.cod_tptran_tarjeta = ttc.cod_tptran_tarjeta
+                          WHERE EXTRACT(YEAR FROM ttc.fecha_transaccion)=2021
+                          ORDER BY ttc.fecha_transaccion;
+                        
+     
+     --Variable temporal(vacia), que guarda filas del cursor para despues trabajarla
+    reg_trans cur_trans%ROWTYPE;
+BEGIN
+--EL CURSOR PRIMERO SE ABRE
+ OPEN cur_trans;
+ --Ciclo para recorrer el cursor
+ LOOP
+  --Recuperamos cada fila del cursor y lo vamos guardando en la variable temporal
+    FETCH cur_trans INTO reg_trans;
+    --SIEMPRE PONER LA CONDICION DE SALIDA
+    EXIT WHEN cur_trans%notfound;
+    DECLARE
+    v_monto NUMBER:=reg_trans.monto_trans;
+    v_tipo NUMBER:=reg_trans.tipo_cliente;
+    BEGIN 
+     IF v_tipo=30 OR v_tipo=40 THEN
+        v_puntos:=
+            CASE
+              WHEN  v_monto BETWEEN 500000 AND 700000 THEN TRUNC(v_monto/100000)*vry_puntos(1)
+              WHEN  v_monto BETWEEN 700001 AND 900000 THEN TRUNC(v_monto/100000)*vry_puntos(2)
+              WHEN  v_monto >900000 THEN TRUNC(v_monto/100000)*vry_puntos(3)
+            END;
+     ELSE 
+       v_puntos:=TRUNC(v_monto/100000)*(vry_puntos(4));
+     END IF;
+    END ;
+    --Trabajamos el cursor utilizando la variable temporal
+        dbms_output.put_line( v_contador||'*  RUT: '||reg_trans.rut||'-'||reg_trans.dvrut||' nro tarjeta: '||reg_trans.nro_tarjeta||' nro_trans: '||reg_trans.nro_trans  
+                          ||' fecha_trans '||reg_trans.fecha_trans||' tipo_trans :'||reg_trans.tipo_trans||' monto_trans: '||reg_trans.monto_trans||' PUNTOS :'||v_puntos); 
+        v_contador:=v_contador+1; 
+ END LOOP;
+ CLOSE cur_trans;
+END;
+   

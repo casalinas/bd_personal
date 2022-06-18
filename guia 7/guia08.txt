@@ -1,0 +1,19 @@
+SET SERVEROUTPUT ON;
+DECLARE
+CURSOR cur_reajuste IS SELECT 
+        nro_solic_prod AS nro_solic,nro_socio AS nro_socio,fecha_solic_prod AS fecha,
+        ahorro_minimo_mensual AS min_mensual,dia_pago_mensual AS dia_mensual,
+        monto_total_ahorrado AS total_aho,cod_prod_inv AS cod_prod
+                     FROM producto_inversion_socio
+                     ORDER BY nro_socio;
+ reg_pis cur_reajuste%ROWTYPE; 
+BEGIN
+    OPEN cur_reajuste;
+    LOOP
+        FETCH cur_reajuste INTO reg_pis;
+        EXIT WHEN cur_reajuste%NOTFOUND;
+        DBMS_OUTPUT.PUT_LINE(reg_pis.nro_solic||' '||reg_pis.nro_socio||' '||reg_pis.fecha||' '||reg_pis.min_mensual
+        ||' '||reg_pis.dia_mensual||' '||reg_pis.total_aho||' '||reg_pis.cod_prod);
+    END LOOP;
+    CLOSE cur_reajuste;
+END;

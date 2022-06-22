@@ -1,0 +1,160 @@
+
+    
+    
+-- GUIA 7 EJERCICIO 1
+ truncate table DETALLE_APORTE_SBIF;
+ truncate table DETALLE_PUNTOS_TARJETA_CATB;
+ truncate table RESUMEN_PUNTOS_TARJETA_CATB;
+ truncate table DETALLE_PUNTOS_TARJETA_CATB;
+ truncate table BALANCE_ANUAL_DETALLE_TRANSAC;
+
+    VARIABLE anno_proceso number;
+    exec :anno_proceso := 2021;
+    
+    var mes_proceso number;
+    exec :mes_proceso := 1;
+
+    variable ini_tramo1 number;
+   execute :ini_tramo1 := 500000; 
+   
+   variable fin_tramo1 number;
+   execute :fin_tramo1 := 700000;
+     
+   variable ini_tramo2 number;
+   execute :ini_tramo2 := 700001; 
+    
+   variable fin_tramo2 number; 
+   execute :fin_tramo2 := 900000;
+     
+    variable tramo3 number;
+    execute :tramo3 := 9000001; 
+
+DECLARE 
+     TYPE v_array1 IS varray(3) OF NUMBER(3) NOT NULL;
+        array_extra v_array1 := v_array1 (300,550,700); 
+   
+     TYPE v_array2 IS varray(1) OF NUMBER(3) NOT NULL;
+      array_fijo v_array2 := v_array2 (250);
+        
+     
+     -- cursor para tarjeta
+       CURSOR c1 IS
+       ( SELECT tc.nro_tarjeta, tc.numrun, tc.fecha_solic_tarjeta,
+        tc.dia_pago_mensual, tc.cupo_compra, tc.cupo_super_avance, 
+        tc.cupo_disp_compra, tc.cupo_disp_sp_avance
+        , ttc.NRO_TRANSACCION, ttc.FECHA_TRANSACCION, ttc.MONTO_TRANSACCION,
+        ttt.NOMBRE_TPTRAN_TARJETA
+        FROM TARJETA_CLIENTE tc
+        INNER JOIN TRANSACCION_TARJETA_CLIENTE ttc on 
+        (tc.nro_tarjeta = ttc.nro_tarjeta)
+        INNER JOIN tipo_transaccion_tarjeta ttt on
+        (ttc.COD_TPTRAN_TARJETA=ttt.cod_tptran_tarjeta)
+        WHERE 
+        EXTRACT (YEAR FROM FECHA_TRANSACCION)=:anno_proceso);
+       
+        
+        
+--cursor principal para clientes
+    CURSOR c2(cli_run NUMBER) IS 
+       ( SELECT cli.numrun as run, cli.dvrun as dv, cli.pnombre as nombre,
+        cli.snombre as snombre, cli.appaterno as appaterno, cli.apmaterno as apmaterno,
+        cli.fecha_nacimiento as nacimiento, cli.fecha_inscripcion as inscripcion,
+        cli.correo as correo, cli.fono_contacto as fono,
+        cli.direccion as dir, cli.cod_region as region, cli.cod_provincia as cod_provincia,
+        cli.cod_comuna as comuna, cli.cod_prof_ofic as cod_prof_ofic,
+        cli.COD_TIPO_CLIENTE as tipo_cliente,
+        tp.NOMBRE_TIPO_CLIENTE as NOMBRE_TIPO_CLIENTE
+        FROM CLIENTE cli 
+        INNER JOIN TIPO_CLIENTE tp ON (tp.COD_TIPO_CLIENTE=cli.COD_TIPO_CLIENTE)
+        WHERE numrun = cli_run );
+        
+        -- cursor para resumen
+/*        
+        CURSOR cur_resumen is 
+        (SELECT 
+        TO_CHAR(0||:mes_proceso||:anno_proceso),
+        group by month;
+*/
+ -- RECORD CLIENTES
+  TYPE rec_cur2 IS RECORD(
+    numrun number,
+    dvrun varchar2(1),
+    pnombre varchar2(50),
+    snombre varchar2(50),
+    appaterno varchar2(50),
+    apmaterno varchar2(50),
+    fecha_nacimiento date,
+    fecha_inscripcion date, 
+    correo varchar2(100),
+    fono_contacto number,
+    direccion varchar2(200),
+    cod_region number, 
+    cod_provincia number, 
+    cod_comuna number,
+    cod_prof_ofic number,
+    cod_tipo_cliente number,
+    NOMBRE_TIPO_CLIENTE varchar2(50),
+    bono_the_best number,
+    bono_fijo number);
+    
+     --variables compuestas cursores
+    reg_c1 c1%rowtype; --registro cursor 1 tarjeta
+    rec_c2 rec_cur2; -- record cursor 2 clientes
+-- monto dividido en 100.000 y luego multiplicado por la cantidad de bono
+BEGIN-- cursor tarjeta
+     FOR r1 in c1
+        LOOP  
+        -- cursor clientes
+       for r2 in c2(r1.numrun)
+     loop
+       -- dentro de este loop se hacen todos los calculos
+    rec_c2.numrun := r2.run ;
+    rec_c2.dvrun := r2.dv ;
+     -- codigo tipo cliente
+    rec_c2.cod_tipo_cliente := r2.tipo_cliente ;
+    -- nombre cliente
+    rec_c2.pnombre := r2.nombre;
+    -- monto transaccion tarjeta
+    reg_c1.monto_transaccion := r1.monto_transaccion;  
+ -- nombre tipo cliente
+    rec_c2.NOMBRE_TIPO_CLIENTE := r2.NOMBRE_TIPO_CLIENTE ;
+    reg_c1.nro_tarjeta := r1.nro_tarjeta;
+    reg_c1.NRO_TRANSACCION := r1.NRO_TRANSACCION;
+    reg_c1.fecha_TRANSACCION := r1.fecha_TRANSACCION;
+    reg_c1.NOMBRE_TPTRAN_TARJETA := r1.NOMBRE_TPTRAN_TARJETA;
+    reg_c1.MONTO_TRANSACCION := r1.MONTO_TRANSACCION;
+    
+    
+    if rec_c2.cod_tipo_cliente = 30 or rec_c2.cod_tipo_cliente = 40 then  
+    
+    rec_c2.bono_the_best := 
+    CASE
+    WHEN reg_c1.monto_transaccion BETWEEN :ini_tramo1 AND :fin_tramo1 THEN TRUNC(reg_c1.monto_transaccion/100000) * (array_extra(1) + array_fijo(1))
+    WHEN reg_c1.monto_transaccion BETWEEN :ini_tramo2 AND :fin_tramo2 THEN TRUNC(reg_c1.monto_transaccion/100000) * (array_extra(2) + array_fijo(1))
+    WHEN reg_c1.monto_transaccion >= :tramo3 THEN TRUNC(reg_c1.monto_transaccion/100000) * (array_extra(3) + array_fijo(1))
+    WHEN reg_c1.monto_transaccion < :ini_tramo1 THEN TRUNC(reg_c1.monto_transaccion/100000) * (array_fijo(1))
+    end;
+    ELSE
+    rec_c2.bono_the_best := TRUNC (reg_c1.monto_transaccion/100000) * array_fijo(1);
+    end if;
+     /*
+ dbms_output.put_line(rec_c2.pnombre||' rut '||r1.numrun||' '||r1.NRO_TARJETA||
+ ' monto '||reg_c1.monto_transaccion||' bono COD '||rec_c2.cod_tipo_cliente||' '|| rec_c2.bono_the_best||
+ mes_processo);
+   */
+   
+   dbms_output.put_line(rec_c2.numrun||' '||rec_c2.dvrun||' '||reg_c1.nro_tarjeta||reg_c1.NRO_TRANSACCION||
+    reg_c1.fecha_TRANSACCION|| reg_c1.NOMBRE_TPTRAN_TARJETA||reg_c1.MONTO_TRANSACCION||rec_c2.bono_the_best||' '||:mes_proceso||:anno_proceso);
+   
+   
+   
+    INSERT INTO DETALLE_PUNTOS_TARJETA_CATB VALUES 
+    (rec_c2.numrun,rec_c2.dvrun,reg_c1.nro_tarjeta,reg_c1.NRO_TRANSACCION,reg_c1.fecha_TRANSACCION,
+    reg_c1.NOMBRE_TPTRAN_TARJETA,reg_c1.MONTO_TRANSACCION,NVL(rec_c2.bono_the_best,0)); 
+   end loop;
+    
+   end loop;
+  
+
+ end;
+/

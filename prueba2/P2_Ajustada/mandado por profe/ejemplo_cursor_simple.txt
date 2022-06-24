@@ -1,0 +1,85 @@
+--
+-- ejemplo de cursores simples y con paso de parámetros -usa tablas de práctica-6
+-- 
+--cursores con for
+set serveroutput on;
+declare
+  cursor cmed is
+  select sueldo_base, med_run, pnombre from medico;
+  cmed_rec cmed%ROWTYPE;
+begin
+  for cmed_rec in cmed
+  loop
+    dbms_output.put_line(cmed_rec.med_run || ' ' || cmed_rec.sueldo_base);
+  end loop;
+end;
+
+--
+-- for -usando parámetros
+--
+set serveroutput on;
+declare
+  cursor cmed(nombre in varchar2) is
+    select sueldo_base, med_run
+    from medico
+    where pnombre = nombre;
+  cmed_rec cmed%ROWTYPE;
+  vnombre varchar2(20);
+begin
+  vnombre := 'Maria';
+  dbms_output.put_line('Sueldo de los empleados con nombre ' || vnombre);
+  for cmed_rec IN cmed(vnombre)
+  loop
+    dbms_output.put_line(cmed_rec.med_run || ' ' || cmed_rec.sueldo_base);
+  end loop;
+end;
+
+--
+-- con loop simple
+--
+set serveroutput on;
+declare
+  cursor cmed(nombre IN varchar2) is
+    select sueldo_base, med_run
+    from medico
+    where pnombre = nombre;
+  cmed_rec cmed%ROWTYPE;
+  vnombre varchar2(20);
+begin
+  vnombre := 'Maria';
+  dbms_output.PUT_line ('Sueldo de los medicos con nombre ' || vnombre);
+  open cmed(vnombre);
+  loop
+    fetch cmed INTO cmed_rec;
+    EXIT WHEN cmed%NOTFOUND; -- para el ultimo registro
+    dbms_output.PUT_line (cmed_rec.med_run || ' ' || cmed_rec.sueldo_base);
+  end loop;
+  dbms_output.put_line ('Nro de medicos procesados ' || cmed%ROWCOUNT);
+  close cmed;
+end;
+
+--
+-- con while
+--
+set serveroutput on;
+declare
+  cursor cmed(nombre IN varchar2) is
+    select sueldo_base, med_run
+    from medico
+    where pnombre = nombre;
+  cmed_rec cmed%ROWTYPE;
+  vnombre varchar2(20);
+begin
+  vnombre := 'Maria';
+  dbms_output.PUT_line ('Sueldo de los medicos con nombre ' || vnombre);
+  open cmed(vnombre);
+  fetch cmed into cmed_rec;
+  while cmed%FOUND loop
+    dbms_output.PUT_line (cmed_rec.med_run || ' ' || cmed_rec.sueldo_base);
+    fetch cmed INTO cmed_rec;
+  end loop;
+  dbms_output.put_line ('Nro de medicos procesados ' || cmed%ROWCOUNT);
+  close cmed;
+end;
+
+

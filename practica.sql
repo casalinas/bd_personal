@@ -3221,3 +3221,243 @@ end loop;
 close cur_asesoria;
 end;
 /
+
+ /*
+ en trigger, 
+ El INSERT  solo tiene el new
+ UPDATE NEW Y OLD 
+ DELETE SOLO TIENE OLD
+ for each row permite que trigger sea a nivel de fila
+ existen trigger de tabla y de fila, el de fila es con for each row
+
+
+
+ */
+
+ /*
+ PROCEDIMIENTOS ALMACENADOS
+ Identificar caracteristicas y beneficios de subprogramas sql
+ caracteristicas procedimiento almacenado
+ como crear procedimientos almacenados simples y con parametros en la base de datos
+ identificar las diferencias entre parametros formales y actuales.
+ como usar los diferentes modos de parametros.
+ como incocar un procedimiento almacenado
+ como se manejan las excepciones en los procedimientos almacenado
+ como eliminar un procedimiento almacenado
+ como obtener informacion de los procedimientos almacenados desde el diccionario
+ de datos.
+
+ */
+
+ /*
+ conceptos generales subprogramas pl/sql
+ se pueden declarar y definir un subprograma dentro de 
+ cualquier bloque pl/sql o de otro subprograma
+
+ para declarar un subprograma, debe tener una especificacion, que
+ incluye descripciones de los parametros, y un cuerpo
+
+ procedimientos procesan informacion pero no devuelven datos,
+ las funciones siempre deben devolver un dato, como un metodo en java.
+
+ procedimiento almacenado es como void al que se le pueden pasar parametros 
+ y pedir datos de salida pero intrinsecamente es para realizar proceso y devolver
+ resultado. (calculos)
+
+create or replace subprograma
+
+is|as 
+[declaracion variables locales]
+begin
+exception
+
+end;
+
+el procedimiento hace lo que se le pide y nada mas
+
+ventajas subprogramas pl/sql (procedimientos almacenados y funciones)
+facil mantencion
+mejora de la seguridad e integridad de los datos
+mejora la claridad del codigo
+mejora el rendimiento
+ 
+un subprograma depende directamente de todos los objetos que utilice
+se debe tener primero bien hecha la estructura de las tablas antes de hacer procedimientos
+si se modifica un subprograma puede invalidar todos los objetos que dependan de el
+(directa o indirectamente) y podran necesitar ser recompilados
+
+para que un usuario pueda ejecutar un subprograma del que no es dueño
+se le debe otorgar permiso de ejecucion sobre ese objeto
+(grant execute nombre_subprograma to usuario)
+
+para que un usuario pueda ejecutar un subprograma que ejecuta a otro, debe
+tener los permisos para acceder a todos los objetos
+que se hacen referencia en el subprograma
+(grant select on nombre_objeto to usuario)
+
+
+bloques anonimos:
+sin nombre
+compilados cada vez que se ejecutan
+no se almacenan en base de datos
+no pueden ser invocados por otras aplicaciones
+no retornan valores
+no pueden recibir parametros
+
+SUBPROGRAMAS:
+bloques con nombre
+compilados cuando se crean o cuando se modifican
+almacenados en base de datos
+se pueden invocar por su nombre desde otras aplicaciones
+subprogramas llamados funciones deben retornar valores
+pueden recibir parámetros
+
+- El parametro, al igual que los metodos, sirven para afinar el resultado
+que se quiere obtener dentro del procedimiento o funcion
+
+crear/editar procedimiento, advertencia o errores de compilacion, si se advierte,
+sino se compila correctamente
+
+si hay mensaje de error en procedimiento se debe resolver
+
+procedimiento se puede arreglar desde la pestaña procedimientos, se corrige y guarda,
+al mismo tiempo se debe corregir en hoja de trabajo.
+
+procedimientos pueden tener
+parametros de entrada o salida o de entrada y salida
+ 
+ */
+
+
+-- procedimientos almacenados
+create or replace procedure sp_listado_emp(p_iddepto number)
+is 
+    cursor cur_emp is
+      select * from employees where department_id=p_iddepto;
+begin
+    for x in cur_emp
+    loop
+        DBMS_OUTPUT.PUT_LINE('nombre: '||x.first_name||' sueldo '||x.salary);
+    end loop;
+end;
+--------------------------------
+set serveroutput off;
+execute sp_listado_emp(60);
+----------------------------------------------------------------------
+create or replace procedure sp_imp_emp(p_imp number)
+is 
+    cursor cur_emp is
+      select * from employees ;
+    v_imp number :=0;
+begin
+    for x in cur_emp
+    loop
+        v_imp:=(x.salary*(p_imp/100));
+        DBMS_OUTPUT.PUT_LINE('nombre: '||x.first_name||' impuesto '||v_imp||' '||x.salary);
+    end loop;
+end;
+execute sp_imp_emp(&ingrese_impuesto);
+
+declare
+    v_imp number;
+begin
+    v_imp:=&Ingrese_el_impuesto;
+    sp_imp_emp(v_imp);
+end;
+-- definicion de parametros; por defecto es de entrada
+-- in --> solo entrada (por defecto)
+-- out --> solo salida de datos
+-- IN OUT --> permiten la entrada y salida de datos 
+create or replace procedure sp_parametros1(p_id in number)
+is
+    cursor cur_emp is
+    select * from employees where department_id=p_id;
+    v_suma_sueldos number :=0;
+begin
+    for x in cur_emp
+    loop
+        v_suma_sueldos:=v_suma_sueldos+x.salary;
+         
+    end loop;
+ --  dbms_output.put_line('total sueldos: ' || v_suma_sueldos);
+end;
+---------------------------------------
+-- creacion procedimiento almacenado que retorna datos (suma y devuelve sueldo)
+-- no es naturaleza retornar pero se puede hacer
+create or replace procedure sp_suma_depto(p_id number, p_suma out number)
+is
+    cursor cur_emp is select * from employees where department_id=p_id;
+    v_suma number:=0;
+begin
+    for x in cur_emp
+    loop
+        v_suma:=v_suma+x.salary;
+    end loop;
+    p_suma:= v_suma;
+end;
+-- para ejecutarlo necesito otro proc. o bloque anonimo por parametro out 
+-- para recuperar valor de esa variable de salida
+declare
+    v_suma_depto number;
+    v_depto number:= 60;
+begin
+-- forma 1 de pasar parametros a procedimiento
+    sp_suma_depto(v_depto,v_suma_depto);
+    dbms_output.put_line('la suma total es:'|| v_suma_depto);
+  v_depto:=90;
+    -- asignar valores para parametro id y suma bajo el nombre de parametro
+    -- pd_id se almacena en v_depto y p_suma en v_suma_depto
+    -- forma 2 de pasar parametros a procedimiento
+     sp_suma_depto(p_id=> v_depto, p_suma => v_suma_depto);
+    dbms_output.put_line('la suma total es:'|| v_suma_depto);
+end;
+-- un parametro es in out cuando parte con un valor y sale con otro
+
+/*
+arriba p_suma es de salida, cuando se ocupa una var de salida,
+cuando el procedimiento requiera devolver algun estado o accion,
+aquellos que siempre deben devolver datos son las funciones,
+procedimientos procesan info sin indicar si lo hicieron o no,
+la var de salida es opcional. 
+en este caso recibe dos datos, 1 par de entrada (p_id)
+segundo parametro p_suma es de salida, esa var se carga con el 
+valor resultante del proceso realizado.
+ el cursor selecciona todos los empleados cuyo departamento sea igual
+ al parametro de entrada definido (60)
+ variable suma con 0 ,
+ cursor con x de for lo que hace la maquina es ir sumando,
+ el 0 de suma se va sumando mas los salarios que van entrando.
+ cuando termine end loop en parametro de salida se guarda resultado
+ de sumatoria, cuando se compilo no hubo ningun error.
+ para poder ejecutarlo se uso un bloque anonimo, lo que hace es
+ crear una var suma_depto donde se rescata lo que devuelve el parametro suma,
+ y var depto se adjudica num 60.
+ sp_suma_depto se le pasa departamento 60 y variable de donde recoge el resultado
+ de la suma  p_suma
+*/
+-------------------------------------------
+-- procedimiento con parametro de entrada y salida
+create or replace procedure sp_nuevo_sueldo(p_idemp number, p_sueldo in out number)
+is
+    v_reajuste number:=0;
+    v_departamento number;
+begin
+    select department_id into v_departamento
+    from employees where employee_id=p_idemp;
+    if p_sueldo <5000 and v_departamento in (60,90,30) then
+        v_reajuste:= p_sueldo*1.5;
+        p_sueldo:= v_reajuste;
+    else 
+        p_sueldo:=0;
+    end if;
+end;
+-- para ejecutar
+declare
+    v_reajuste number;
+    v_sueldo number:=3000;
+begin
+    sp_nuevo_sueldo(107,v_sueldo);
+    dbms_output.put_line('El nuevo sueldo es: ' || v_sueldo);
+end;
+select * from employees where department_id=60;
+

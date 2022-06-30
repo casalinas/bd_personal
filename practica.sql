@@ -3328,7 +3328,6 @@ parametros de entrada o salida o de entrada y salida
  
  */
 
-
 -- procedimientos almacenados
 create or replace procedure sp_listado_emp(p_iddepto number)
 is 
@@ -3460,4 +3459,146 @@ begin
     dbms_output.put_line('El nuevo sueldo es: ' || v_sueldo);
 end;
 select * from employees where department_id=60;
+
+
+--  para eliminar procedimiento (drop procedure nombre_procedimiento;)
+
+-- FUNCIONES ALMACENADAS
+
+/*
+describir funciones almacenadas
+identificar diferencias con procedimientos
+es un tipo de subprograma que siempre retorna
+un valor.
+puede aceptar parametros y estructuralmente es similar 
+a un procedimiento
+
+puede ser compilada y almacenada en la base de datos
+debe tener una clausula return en el encabezado y a lo
+menos una sentencia return en la seccion ejecutable.
+se puede invocar con su nombre desde un procedimiento o bloque
+
+PROCEDIMIENTOS 
+Ejecutado como sentencia pl/sql
+No contiene la clausula RETURN en el encabezado
+Puede retornar un valor usando parametros de salida
+Puede contener una sentencia RETURN sin un valor
+Ejecutado como sentencia pl/sql
+
+FUNCIONES
+Invocadas como parte de una expresión
+Debe contener una cláusula RETURN en el encabezado
+Debe retornar un valor simple
+Debe contener a lo menos una sentencia RETURN
+Invocadas como parte de una expresión
+
+CREACION DE FUNCION ALMACENADA
+
+Crear/editar funcion
+advertencias y errores si hay errores
+si hay errores se ven (errores logicos no detecta)
+si no se invoca la funcion
+
+Se ven errores en sql developer
+usar comando show errores en sql plus
+se pueden usar vistas USER/ALL/DBA_ERRORS
+(por lo general se ve en ventana los errores)
+---------------------------------------------------------------
+la sentencia create function permite crear una nueva funcion 
+en la base de datos
+Opcionalmente se puede usar la clausula replace
+
+Se pueden declarar parametros, se debe indicar el tipo
+de dato a retornar y se debe definir las acciones a ser
+realizadas a través de un bloque pl/sql estándar
+
+El bloque pl/sql en la funcion comienza con BEGIN, puede estar
+precedida por la declaración de variables locales, y termina con end
+
+Se debe declarar una sentencia RETURN para retornar un valor
+con un tipo de dato que sea consistente conm la declaracion de la función
+
+create or replace function nombre_funcion
+return TIPO DATO IS|AS
+BEGIN
+-- sentencia ejecutables
+RETURN expresión
+[EXCEPTION]
+-- sentencia excepcion
+[RETURN expresión]
+END;
+*/
+ 
+ -- creacion de funciones
+ ------------------------
+-- estructura básica de una función
+create or replace 
+function fn_bono(p_sueldo number) return number
+is
+ -- declaracion de variables
+ v_porc_bono number := 0.6;
+ v_nuevo_sueldo number:=0;
+begin
+    v_nuevo_sueldo:=(p_sueldo+(p_sueldo*v_porc_bono));
+    return v_nuevo_sueldo;
+exception
+    when others then
+        return 0;
+end;
+-- para ejecutar con procedimiento almacenado o bloque anonimo
+declare
+    v_salario number:=0;
+    v_nuevo number:=0;
+begin
+    select salary into v_salario from employees
+    where employee_id=100;
+    v_nuevo:= fn_bono(v_salario);
+    dbms_output.put_line('Sueldo es: '|| v_nuevo);
+end;
+
+/*
+COMO USAR FUNCIONES predefinidas por usuario en sentencias sql
+Pueden ser referenciadas en cualquier sentencia sql
+
+- actuan en forma similar a las funciones predefinidas de una fila de sql
+- pueden ser usadas en la clausula select, where, having, order by,
+group by, values y set
+- permite efectuar calculos y operaciones complejas que no se pueden hacer a traves 
+de una sentencia simple de sql
+- incrementa la eficiencia de las queries cuando son utilizadas en la clausula where para 
+filtrar datos
+*/
+-- para ejecutar en select
+select first_name,last_name,salary,fn_bono(salary)-- se pasa parametro de funcion
+as nuevo_sueldo from employees;
+
+-- restricciones de funciones definidas por el usuario
+/*
+- no se puede usar para especificar un valor por defecto de una columna
+- cuando son invocadas desde una sentencia select sobre una tabla t no pueden
+contener sentencias dml (update o insert o delete) sobre la misma tabla t
+porque si dentro de la funcion estoy modificando los registro de la tabla no puedo
+llamarla desde un select
+- No pueden ser invocadas desde clausula de check (condicionante)
+constraint o desde una sentencia create table o alter table
+- Las funciones invocadas desde sentencias update o delete sobre una tabla 
+t no pueden tener una sentencia select o contener dml sobre la misma tabla t
+(si dentro de instruccion hay funciones select empleadas con update o delete no se permite)
+*/
+
+-- para eliminar funcion drop function nombre_funcion;
+select * from user_objects where object_type='FUNCTION';
+DROP FUNCTION nombre_funcion;
+drop procedure sp_ejemplo;
+-- FUNCION DE EJEMPLO DE UNA GUIA para retornar nombre
+CREATE OR REPLACE FUNCTION FN_NOMBRE_COMPLETO(ID_EMP NUMBER) RETURN VARCHAR2
+IS
+    V_NOMBRE VARCHAR2(100);
+BEGIN
+    SELECT PNOMBRE||' '||SNOMBRE||' '||AP_PATERNO||' '||AP_MATERNO INTO V_NOMBRE
+    FROM empleados WHERE ID_EMPLEADO=ID_EMP;
+    RETURN '--'; -- si no encuentra nada retorna --
+END;
+-- PARA LLAMAR A LA FUNCION
+FN_NOMBRE_COMPLETO(ID_EMPLEADO); --se llama a fn y se le pasa el parametro id
 

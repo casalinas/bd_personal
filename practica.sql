@@ -3602,3 +3602,160 @@ END;
 -- PARA LLAMAR A LA FUNCION
 FN_NOMBRE_COMPLETO(ID_EMPLEADO); --se llama a fn y se le pasa el parametro id
 
+
+
+
+
+
+------------------------------------------------------------------------------
+-- PAQUETES O PACKAGE
+
+
+
+-- PACKAGES O PAQUETES
+
+
+
+
+-- packege sirve para organizar procedimientos almacenados y funciones
+/*
+describir que es un package
+como crearlo para agrupar variables relacionadas
+como crear package con constructores publicos y privados
+como invocar un constructor del package
+describir el uso de un paquete sin cuerpo
+describir las ventajas del uso de package
+como obtener informacion desde el diccionario de datos de los
+package creados en la base de datos
+
+Conceptos generales
+grupo o de diferentes componente4s pl/sql tambien 
+llamados constructores, relacionados logicamente
+haciendo una unidad
+
+consta de dos partes
+(especificacion y cuerpo)
+las que se almacenan por separado en el diccionario de dato
+
+permite al servidor oracle leer multiples objet os en memoria
+a la vez
+
+los constructores de un package pueden ser tipos pl sql var estructuras exepciones
+procedimientos y funciones
+
+el contenido puede ser compartido con muchas aplicaciones
+
+especificacion del package
+- es la que puede ser usada por las aplicaciones. aqui se declaran
+los tipos, variables, constantes, cursores y subprogramas para uso publico.
+- tamnien puede incluir pragmas que son directivas para el compilador
+
+Cuerpo de package
+- Contiene informacion de sus propios subprogramas y la implementacion completa
+de los subprogramas declarados en la parte de especificacion
+- tambien se definen constructores pl sql como son tipos de variables, constantes,
+excepciones y cursores
+- si la especificacion del package no contiene declaracion de subprogramas entonces
+no se requiere un cuerpo para el package.
+
+ESPECIFICACION DEL PACKAGE:
+VARIABLE                        --> ESTA SECCION ES PUBLICA
+DECLARACION PROCEDIMIENTO A;
+
+CUERPO DEL PACKAGE:
+DEFINICION PROCEDIMIENTO 3...
+VARIABLE                        --> ESTA SECCION ES PRIVADA
+BEGIN
+...
+END;
+
+
+VISIBILIDAD DE LOS COMPONENTES DE UN PACKAGE
+
+Los componentes locales son visibles dentro de la estructura en la 
+cual ellos son declarados
+
+la visibilidad de un componente (constructor) significa si este
+puede ser referenciado y usado por otros
+componentes y objetos
+
+los componentes declarados globalmente son visibles interna o externamente
+al package
+
+un subprograma privado puede ser invocado solo desde subprogramas publicos
+u otro constructor privado del package
+
+la visibilidad de un componente o constructor depende si ellos son declarados
+en forma local (privado) o global (público)
+*/
+
+---------------------------------------
+-- para organizar las funciones podemos crear un packete
+
+-- crear un packete para organizar las funciones y procedimientos almacenados
+-- 1) crear la cabecera
+-- todo lo que este en la cabecera sera publico
+create or replace package pkg_prueba2
+is
+    -- se copia todo antes del is para implementar
+     procedure sp_nuevo_sueldo(p_idemp number, p_sueldo in out number);
+     procedure sp_suma_depto(p_id number, p_suma out number);
+     function fn_bono(p_sueldo number) return number;
+end;
+-- 2) Crear el cuerpo del paquete
+-- involucra copiar todo el codigo de funciones y procedimientos
+create or replace package body pkg_prueba2
+is
+procedure sp_nuevo_sueldo(p_idemp number, p_sueldo in out number)
+is
+    v_reajuste number:=0;
+    v_departamento number;
+begin
+    select department_id into v_departamento
+    from employees where employee_id=p_idemp;
+    if p_sueldo <5000 and v_departamento in (60,90,30) then
+        v_reajuste:= p_sueldo*1.5;
+        p_sueldo:= v_reajuste;
+    else 
+        p_sueldo:=0;
+    end if;
+end;
+procedure sp_suma_depto(p_id number, p_suma out number)
+is
+    cursor cur_emp is select * from employees where department_id=p_id;
+    v_suma number:=0;
+begin
+    for x in cur_emp
+    loop
+        v_suma:=v_suma+x.salary;
+    end loop;
+    p_suma:= v_suma;
+end;
+
+function fn_bono(p_sueldo number) return number
+is
+ -- declaracion de variables
+ v_porc_bono number := 0.6;
+ v_nuevo_sueldo number:=0;
+begin
+    v_nuevo_sueldo:=(p_sueldo+(p_sueldo*v_porc_bono));
+    return v_nuevo_sueldo;
+exception
+    when others then
+        return 0;
+end;
+end;
+-----------------------------------------------------
+-- ejecutar desde un paquete
+execute pkg_prueba2.fn_bono(3000);
+
+-- ejecutando dentro del bloque funcion que esta dentro de package
+declare
+    v_salario number:=0;
+    v_nuevo number:=0;
+begin
+    select salary into v_salario from employees
+    where employee_id=100;
+    v_nuevo:= pkg_prueba2.fn_bono(v_salario);
+    dbms_output.put_line('Sueldo es: '|| v_nuevo);
+end;

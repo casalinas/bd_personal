@@ -1,0 +1,263 @@
+--TABLA DE REG_ERROR Y COMPONENTES
+DROP SEQUENCE sq_cat;
+DROP SEQUENCE sq_htour;
+DROP SEQUENCE sq_error;
+
+CREATE SEQUENCE sq_htour;
+CREATE SEQUENCE sq_cat;
+CREATE SEQUENCE sq_error;
+
+CREATE TABLE reg_errores (
+  id_error NUMBER NOT NULL,
+  nomsubprograma varchar2(200) not null,
+  msg_error VARCHAR2(300),
+  CONSTRAINT pk_reg_errores PRIMARY KEY (id_error)
+);
+----------------------------------------------------------- PRIMER TRIGGER
+-- CASO 1 TRIGGER 1
+CREATE OR REPLACE TRIGGER trg_supervisor1
+AFTER INSERT OR DELETE OR UPDATE OF run_supervisor ON empleado
+FOR EACH ROW
+DECLARE
+    v_bono NUMBER := 30000;
+    v_cuenta NUMBER := 1;
+BEGIN
+   IF INSERTING THEN
+      UPDATE supervisor
+          SET empleados = empleados + v_cuenta,
+              bono_responsabilidad = bono_responsabilidad + v_bono 
+      WHERE run_supervisor = :NEW.run_supervisor;
+      END IF;
+      
+   IF DELETING THEN
+      UPDATE supervisor
+          SET empleados = empleados - v_cuenta,
+              bono_responsabilidad = bono_responsabilidad - v_bono
+      WHERE run_supervisor = :OLD.run_supervisor;
+      END IF;
+      
+   IF UPDATING THEN
+      UPDATE supervisor
+          SET empleados = empleados + v_cuenta,
+              bono_responsabilidad = bono_responsabilidad + v_bono
+      WHERE run_supervisor = :NEW.run_supervisor;
+      UPDATE supervisor
+          SET empleados = empleados - v_cuenta,
+              bono_responsabilidad = bono_responsabilidad - v_bono
+      WHERE run_supervisor = :OLD.run_supervisor;
+      END IF;
+ 
+END;
+-----------------------------------------------------------------SEGUNDO TRIGGER
+
+-- TRIGGER 2 CASO 1
+CREATE OR REPLACE TRIGGER trg_supervisor2
+AFTER INSERT OR DELETE OR UPDATE OF run_supervisor ON empleado
+FOR EACH ROW
+DECLARE
+    v_bono NUMBER := 30000;
+    v_cuenta NUMBER := 1;
+BEGIN
+   IF INSERTING THEN
+      UPDATE supervisor
+          SET empleados = empleados + v_cuenta, bono_responsabilidad= bono_responsabilidad + v_bono
+      WHERE run_supervisor = :NEW.run_supervisor;
+   ELSIF DELETING THEN
+      UPDATE supervisor
+      SET empleados = empleados - v_cuenta,  bono_responsabilidad= bono_responsabilidad - v_bono
+      WHERE run_supervisor = :OLD.run_supervisor;
+   ELSIF UPDATING THEN
+    IF :NEW.run_supervisor <> :OLD.run_supervisor THEN
+      UPDATE supervisor
+        SET empleados = empleados - v_cuenta, bono_responsabilidad= bono_responsabilidad - v_bono
+        WHERE run_supervisor = :OLD.run_supervisor;
+      UPDATE supervisor
+        SET empleados = empleados +v_cuenta, bono_responsabilidad= bono_responsabilidad + v_bono
+        WHERE run_supervisor = :NEW.run_supervisor;  
+    END IF; 
+   END IF; 
+END;
+
+-- consultas para verificar estado actual de los datos
+SELECT * FROM supervisor WHERE run_supervisor = '10125945-7';
+SELECT * FROM supervisor;
+SELECT run_empleado, nom_empleado, run_supervisor FROM empleado WHERE nom_empleado = 'CARLOS ALVARADO' or nom_empleado= 'LUIS LORCA' ORDER BY nom_empleado ASC;
+
+
+--  rollback;
+
+--2 BLOQUE ANONIMO DE PRUEBA AL TRRIGGER
+BEGIN
+    INSERT INTO empleado VALUES ('15637487-2', 'ROSA ALMARZA', 'Cueto 159', '964732892', 450000, null, 2, '10125945-7');
+    DELETE FROM empleado WHERE run_empleado ='16965754-1';
+    UPDATE empleado SET run_supervisor = '6245678-1' WHERE run_empleado = '9789456-3';
+    
+END;
+
+-- consultas para verificar estado actual de los datos
+SELECT * FROM supervisor WHERE run_supervisor = '10125945-7';
+SELECT * FROM supervisor;
+SELECT run_empleado, nom_empleado, run_supervisor FROM empleado WHERE nom_empleado = 'CARLOS ALVARADO' or nom_empleado= 'LUIS LORCA' ORDER BY nom_empleado ASC;
+
+
+--2 BLOQUE ANONIMO DE PRUEBA AL TRRIGGER
+BEGIN
+    INSERT INTO empleado VALUES ('15637487-2', 'ROSA ALMARZA', 'Cueto 159', '964732892', 450000, null, 2, '10125945-7');
+    DELETE FROM empleado WHERE run_empleado ='16965754-1';
+    UPDATE empleado SET run_supervisor = '6245678-1' WHERE run_empleado = '9789456-3';
+    
+END;
+
+--caso2
+--ENCABEZADO DEL PACKAGE
+CREATE OR REPLACE PACKAGE pkg_dolares
+IS
+--Variables
+    DOLAR NUMBER(8);
+    
+    FUNCTION fn_consumo_dolares(p_nroh NUMBER) RETURN NUMBER;
+END pkg_dolares;
+
+--FUNCION
+-- cuerpo del package
+CREATE OR REPLACE PACKAGE BODY pkg_dolares AS 
+  -- se implementa la funcion para recuperar el monto por tours que haya tomado el huesped
+  FUNCTION fn_consumo_dolares(p_nroh NUMBER) RETURN NUMBER
+  AS
+    v_monto NUMBER;
+  BEGIN
+ SELECT SUM(tl.monto_consumos)
+    INTO v_monto
+    FROM total_consumos tl JOIN huesped h 
+    ON tl.id_huesped = h.id_huesped
+    AND tl.id_huesped = p_nroh;              
+    RETURN nvl(v_monto,0);   
+  END fn_consumo_dolares;  
+END pkg_dolares;
+
+
+
+-- funcion almacenada que retorna el total de los consumos de un huesped
+CREATE OR REPLACE FUNCTION fn_tours 
+  (p_nroh NUMBER) RETURN NUMBER
+AS
+  v_tours NUMBER(6);
+  v_sql varchar2(300);
+  v_msg VARCHAR2(300);
+BEGIN
+  v_sql := 'SELECT NVL(SUM(ht.num_personas * t.valor_tour),0)
+            FROM huesped_tour ht JOIN tour t 
+            ON t.id_tour = ht.id_tour
+            WHERE t.id_tour = :1';
+  EXECUTE IMMEDIATE v_sql INTO v_tours USING p_nroh;
+  RETURN v_tours;
+  
+
+  EXCEPTION 
+    WHEN OTHERS THEN
+       v_msg := SQLERRM;
+       INSERT INTO reg_errores VALUES (sq_error.NEXTVAL, 'Error en la funci�n fn_calccons al recuperar los consumos del cliente con Id ' || p_nroh, v_msg);
+       RETURN 0;
+END fn_tours;
+
+-- procedimiento principal para gestionar el proceso
+-- recibe como par�metros el per�odo y la inicial de la suerte
+CREATE OR REPLACE PROCEDURE sp_procesapagos (
+   p_periodo VARCHAR2
+)
+AS
+   -- cursor con los huespedes que se retiran un dia x
+   CURSOR c_huesped(p_periodo VARCHAR2) IS
+   SELECT h.id_huesped, h.appat_huesped||' '||h.apmat_huesped||' '||h.nom_huesped nombre, 
+          SUM((h.valor_habitacion + h.valor_minibar) * r.estadia) aloja, h.id_procedencia procedencia
+   FROM huesped h JOIN reserva r ON h.id_huesped = r.id_huesped
+   JOIN detalle_reserva dr on dr.id_reserva = r.id_reserva
+   JOIN habitacion h ON h.id_habitacion = dr.id_habitacion
+   WHERE TO_CHAR(ingreso,'MM-YYYY') = p_periodo
+   GROUP BY h.id_huesped, h.appat_huesped,h.apmat_huesped,h.nom_huesped, h.id_procedencia;
+   
+   -- variables escalares    
+
+   v_descconsumos NUMBER(8) := 0;
+   v_pct NUMBER;
+   v_msg VARCHAR2(300);
+   v_subtotal NUMBER(8) := 0;
+   v_desapellido NUMBER(8) := 0;
+   v_montoapago NUMBER(8) := 0;
+   v_montoconsumos NUMBER;
+   v_tours NUMBER;
+BEGIN
+   -- TRUNCAMOS LAS TABLAS
+   EXECUTE IMMEDIATE 'TRUNCATE TABLE salidas_diarias_huespedes';
+   EXECUTE IMMEDIATE 'TRUNCATE TABLE reg_errores';
+ 
+   -- bucle para recorrer el cursor
+   FOR r_huesped IN c_huesped(p_periodo) LOOP
+       
+       -- recuperamos los datos que proporcionan el package y las funciones almacenadas    
+       v_montoconsumos := ROUND(pkg_dolares.fn_consumo_dolares(r_huesped.id_huesped));
+       v_tours := fn_tours(r_huesped.id_huesped);
+       
+       -- recuperamos porcentaje y calculamos descuento aplicable a los consumos
+       BEGIN
+          SELECT pct
+          INTO v_pct
+          FROM rangos_consumos
+          WHERE v_montoconsumos BETWEEN vmin_tramo AND vmax_tramo;
+          EXCEPTION
+            WHEN OTHERS THEN
+               v_msg := SQLERRM;
+               INSERT INTO reg_errores VALUES (SQ_ERROR.NEXTVAL, 'PROCESAPAGOS',v_msg);          
+              v_pct := 0;                            
+       END;
+       v_descconsumos := ROUND(v_montoconsumos * v_pct);
+       
+       -- calculamos el subtotal
+       v_subtotal :=  r_huesped.aloja + v_montoconsumos + v_tours;
+       
+       -- calculamos el descuento por inicial de apellido      
+       v_desapellido := CASE 
+                          WHEN r_huesped.procedencia = 151 THEN ROUND(v_subtotal * 0.1)
+                          WHEN r_huesped.procedencia = 115 THEN ROUND(v_subtotal * 0.2)
+                          WHEN r_huesped.procedencia = 120 THEN ROUND(v_subtotal * 0.2)
+                          ELSE 0
+                        END;
+       
+       -- calculamos el monto a pago de cada huesped
+       v_montoapago := v_subtotal - v_descconsumos - v_desapellido; 
+
+       -- salvamos los datos usando sql dinamico nativo 
+      INSERT INTO salidas_diarias_huespedes
+      VALUES(r_huesped.id_huesped, r_huesped.nombre,
+                   (r_huesped.aloja * pkg_dolares.DOLAR), (v_montoconsumos  * pkg_dolares.DOLAR), (v_tours  * pkg_dolares.DOLAR),
+                   (v_subtotal  * pkg_dolares.DOLAR), (v_descconsumos * pkg_dolares.DOLAR), (v_desapellido * pkg_dolares.DOLAR),
+                   (v_montoapago * pkg_dolares.DOLAR));
+   END LOOP;
+   COMMIT;
+END;
+
+BEGIN
+    pkg_dolares.DOLAR := 890;
+    sp_procesapagos('10-2020');
+    /*EXECUTE IMMEDIATE 'DROP SEQUENCE sq_error'; 
+    EXECUTE IMMEDIATE 'CREATE SEQUENCE sq_error';    */
+END;
+
+BEGIN
+ 
+      pkg_dolares.DOLAR := 890;
+      sp_procesapagos('10-2020');
+    /*EXECUTE IMMEDIATE 'DROP SEQUENCE sq_error'; 
+    EXECUTE IMMEDIATE 'CREATE SEQUENCE sq_error';    */
+END;
+
+
+-- Para comprobar los resultados
+   SELECT h.id_huesped, h.appat_huesped||' '||h.apmat_huesped||' '||h.nom_huesped nombre, 
+          SUM((h.valor_habitacion + h.valor_minibar) * r.estadia) aloja
+   FROM huesped h JOIN reserva r ON h.id_huesped = r.id_huesped
+   JOIN detalle_reserva dr on dr.id_reserva = r.id_reserva
+   JOIN habitacion h ON h.id_habitacion = dr.id_habitacion
+   WHERE TO_CHAR(ingreso,'MM-YYYY') = '10-2020'
+   GROUP BY h.id_huesped, h.appat_huesped,h.apmat_huesped,h.nom_huesped;
+   

@@ -1,0 +1,111 @@
+-- procedimientos almacenados
+create or replace procedure sp_listado_emp(p_iddepto number) -- el parametro es opcional para afinar resultado
+is
+    cursor cur_emp is
+        select * from employees 
+    where department_id = p_iddepto;
+
+begin   
+    for x in cur_emp 
+    loop
+        dbms_output.put_line('Nombre: ' || x.first_name|| ' Sueldo '||x.salary);
+    end loop;
+
+end;
+--------------------------------------------------------------------
+exec sp_listado_emp(60); -- ejecutando procedimiento
+----------------------------------------------------------------------
+
+ create or replace procedure sp_imp_emp(p_imp number) -- el parametro es opcional para afinar resultado
+is
+    cursor cur_emp is
+        select * from employees;
+    v_imp number := 0;
+begin   
+    for x in cur_emp 
+    loop
+    v_imp := (x.salary*(p_imp/100));
+        dbms_output.put_line('Nombre: ' || x.first_name|| ' Sueldo '||x.salary||' Imp. '||v_imp);
+    end loop;
+end;
+
+exec sp_imp_emp(10); -- ejecuta procedimiento indicando valor de parametro % imp_empleado
+exec sp_imp_emp(&ingrese_imp); -- pregunta por numero de parametro al momento de ejecutar proceso
+------------------------------------------------------------------------------------
+-- se pueden ejecutar procesos almacenados con exec o dentro de bloque anonimo
+-- mayoritariamente se usan bloques o procesos asociadosa programas en algun lenguaje
+declare
+    v_imp number;
+begin
+    v_imp:=&Ingrese_El_Impuesto;
+    sp_imp_emp(v_imp);
+end;
+-- definicion de parametros:
+-- IN --> solo entrada (por defecto)
+-- out --> solo salida de datos
+-- IN OUT --> permiten entrada y salida de datos
+create or replace procedure sp_parametros1(p_id in number)
+is
+    cursor cur_emp is
+        select * from employees where department_id =p_id;
+    v_suma_sueldos number:= 0;
+begin
+    for x in cur_emp
+    loop
+        v_suma_sueldos:=v_suma_sueldos+x.salary;
+    end loop;
+    dbms_output.put_line('Total sueldos ' || v_suma_sueldos);
+end;
+-----------------------------------------------------------------------
+-- creacion de procedimiento almacenado que retorna datos
+create or replace procedure sp_suma_depto(p_id number, p_suma out number)
+is
+    cursor cur_emp is select * from employees where department_id=p_id;
+    v_suma number := 0;
+begin
+    for x in cur_emp
+    loop
+        v_suma:= v_suma+x.salary;
+    end loop;
+    p_suma:= v_suma;
+end;
+-- para ejecutarlo necesito otro proc. o bloque anonimo, por el parametro de salida
+-- se debe recuperar ese valor
+declare
+    v_suma_depto number;
+    v_depto number := 60;
+begin
+    sp_suma_depto(v_depto,v_suma_depto); -- organizacion por orden de los parametros de proc.
+    dbms_output.put_line('la suma total de salarios es: ' || v_suma_depto||' del departamento '|| v_depto );
+    v_depto:= 90; -- cambio de id dep
+    sp_suma_depto(p_id=> v_depto, p_suma=> v_suma_depto); -- organizacion por asignación;
+    dbms_output.put_line('la suma total de salarios es: ' || v_suma_depto||' del departamento '|| v_depto );
+end;
+--------------------------------------------------------
+create or replace procedure sp_nuevo_sueldo(p_idemp number, p_sueldo in out number)
+is
+    v_reajuste number:=0;
+    v_departamento number;
+begin
+    select department_id into v_departamento
+    from employees where employee_id = p_idemp;
+    if p_sueldo<5000 and v_departamento in (60,90,30) then
+        v_reajuste:= p_sueldo*1.5;
+        p_sueldo:=v_reajuste;
+    else
+        p_sueldo:= 0;
+    end if;
+    end;
+-- para ejecutar
+declare
+    v_sueldo number := 8000;
+    v_id number := 107;
+begin
+    sp_nuevo_sueldo(v_id,v_sueldo); -- parametros out se pasan por variable
+    dbms_output.put_line('El nuevo sueldo es:' ||v_sueldo);
+--    update employees set salary=v_sueldo where employee_id=v_id; para actualizar campo salario 
+end;
+
+/*
+ 
+*/

@@ -3759,3 +3759,479 @@ begin
     v_nuevo:= pkg_prueba2.fn_bono(v_salario);
     dbms_output.put_line('Sueldo es: '|| v_nuevo);
 end;
+
+
+
+
+
+
+
+
+-- PROCEDIMIENTOS ALMACENADOS
+
+
+
+
+
+
+
+
+
+-- procedimientos almacenados
+create or replace procedure sp_listado_emp(p_iddepto number) -- el parametro es opcional para afinar resultado
+is
+    cursor cur_emp is
+        select * from employees 
+    where department_id = p_iddepto;
+
+begin   
+    for x in cur_emp 
+    loop
+        dbms_output.put_line('Nombre: ' || x.first_name|| ' Sueldo '||x.salary);
+    end loop;
+
+end;
+--------------------------------------------------------------------
+exec sp_listado_emp(60); -- ejecutando procedimiento
+----------------------------------------------------------------------
+
+ create or replace procedure sp_imp_emp(p_imp number) -- el parametro es opcional para afinar resultado
+is
+    cursor cur_emp is
+        select * from employees;
+    v_imp number := 0;
+begin   
+    for x in cur_emp 
+    loop
+    v_imp := (x.salary*(p_imp/100));
+        dbms_output.put_line('Nombre: ' || x.first_name|| ' Sueldo '||x.salary||' Imp. '||v_imp);
+    end loop;
+end;
+
+exec sp_imp_emp(10); -- ejecuta procedimiento indicando valor de parametro % imp_empleado
+exec sp_imp_emp(&ingrese_imp); -- pregunta por numero de parametro al momento de ejecutar proceso
+------------------------------------------------------------------------------------
+-- se pueden ejecutar procesos almacenados con exec o dentro de bloque anonimo
+-- mayoritariamente se usan bloques o procesos asociadosa programas en algun lenguaje
+declare
+    v_imp number;
+begin
+    v_imp:=&Ingrese_El_Impuesto;
+    sp_imp_emp(v_imp);
+end;
+-- definicion de parametros:
+-- IN --> solo entrada (por defecto)
+-- out --> solo salida de datos
+-- IN OUT --> permiten entrada y salida de datos
+create or replace procedure sp_parametros1(p_id in number)
+is
+    cursor cur_emp is
+        select * from employees where department_id =p_id;
+    v_suma_sueldos number:= 0;
+begin
+    for x in cur_emp
+    loop
+        v_suma_sueldos:=v_suma_sueldos+x.salary;
+    end loop;
+    dbms_output.put_line('Total sueldos ' || v_suma_sueldos);
+end;
+-----------------------------------------------------------------------
+-- creacion de procedimiento almacenado que retorna datos
+create or replace procedure sp_suma_depto(p_id number, p_suma out number)
+is
+    cursor cur_emp is select * from employees where department_id=p_id;
+    v_suma number := 0;
+begin
+    for x in cur_emp
+    loop
+        v_suma:= v_suma+x.salary;
+    end loop;
+    p_suma:= v_suma;
+end;
+-- para ejecutarlo necesito otro proc. o bloque anonimo, por el parametro de salida
+-- se debe recuperar ese valor
+declare
+    v_suma_depto number;
+    v_depto number := 60;
+begin
+    sp_suma_depto(v_depto,v_suma_depto); -- organizacion por orden de los parametros de proc.
+    dbms_output.put_line('la suma total de salarios es: ' || v_suma_depto||' del departamento '|| v_depto );
+    v_depto:= 90; -- cambio de id dep
+    sp_suma_depto(p_id=> v_depto, p_suma=> v_suma_depto); -- organizacion por asignación;
+    dbms_output.put_line('la suma total de salarios es: ' || v_suma_depto||' del departamento '|| v_depto );
+end;
+--------------------------------------------------------
+create or replace procedure sp_nuevo_sueldo(p_idemp number, p_sueldo in out number)
+is
+    v_reajuste number:=0;
+    v_departamento number;
+begin
+    select department_id into v_departamento
+    from employees where employee_id = p_idemp;
+    if p_sueldo<5000 and v_departamento in (60,90,30) then
+        v_reajuste:= p_sueldo*1.5;
+        p_sueldo:=v_reajuste;
+    else
+        p_sueldo:= 0;
+    end if;
+    end;
+-- para ejecutar
+declare
+    v_sueldo number := 8000;
+    v_id number := 107;
+begin
+    sp_nuevo_sueldo(v_id,v_sueldo); -- parametros out se pasan por variable
+    dbms_output.put_line('El nuevo sueldo es:' ||v_sueldo);
+--    update employees set salary=v_sueldo where employee_id=v_id; para actualizar campo salario 
+end;
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+-- FUNCIONES ALMACENADAS
+
+/*
+Igual que procedimiento con diferencia en cabecera, donde siempre
+se debe asignar un valor que se retornara.
+
+va con cabecera, is y luego seccion de variables, begin cuerpo y end 
+para terminar con el proceso.
+
+Puede ser compilada y almacenada en BD
+Debe tener clausula return en encabezado y al menos un return en cuerpo
+cuando se tenga listo resultado para devolver.
+
+Puede ser invocado, usando su nombrem desde una aplicacion, a traves de
+bloque pl/plsql.
+
+Procedimientos
+-  Ejecutado como sentencia pl/sql
+- No contiene clausula return en el encabezado
+- Puede retornar un valor usando parametros de salir
+- Puede contener una sentencia Return sin un valor
+- Ejecutado como sentencia pl/sql
+
+Funciones 
+- Invocadas como parte de una expresion (bloque anonimo)
+- Debe contener una clausula Return en el encabezado
+- Debe retornar un valor siempre
+- Debe contener a lo menos una sentencia Return como valor de salida
+- Invocada como parte de una expresión (bloque pl/sql)
+
+Compilador entrega ventana donde se muestran los errores
+
+
+*/
+
+
+
+/*
+Sentencias:
+
+CREATE FUNCTION:
+    permite crear una nueva funcion de la bd.
+    Opcionalmente se puede usar la clausula replace
+
+Se pueden declarar parametros, se debe indicar el tipo de dato a retornar
+y se debe definir las acciones a a ser realizadas a traves de un bloque 
+pl/sql estandar
+
+El bloque pl/sql en la Funcion comienza con BEGIN, puede estar precedida por
+la declaración de variables locales, y termina con END
+
+Se debe declarar una sentencia RETURN para retornar un valor
+con un tipo de dato que se consistente con la declaracion de 
+la función.
+
+*/
+-- TRABAJANDO CON USUARIO HR
+-- creacion de funciones
+-----------------------------------------
+-- estructura basica de una funcion
+create or replace function fn_bono(p_sueldo number) return number -- colocar tipo de dato a retornar
+is
+-- seccion declarativa
+    v_porc_bono number:=0.6;
+    v_nuevo_sueldo number :=0;
+begin
+    v_nuevo_sueldo:=(p_sueldo+ (p_sueldo*v_porc_bono));
+    return v_nuevo_sueldo;
+exception
+    when others then
+        return 0;
+end;
+-- para ejecutar funcion (a travez de proc o bloque)
+declare
+    v_salario number:=0;
+    v_nuevo number:=0;
+begin
+    select salary into v_salario from employees
+    where employee_id=100;
+    v_nuevo:=fn_bono(v_salario); -- v_salaraio pasa a ser el parametro
+    dbms_output.put_line('Sueldo es: ' ||v_salario||' con aumento '||v_nuevo);
+end;
+
+/*
+uso de funciones
+- Pueden ser referenciadas en cualquier sentencia sql 
+- Pueden ser usadas en la clausula select, where, having, order by, group by, values y set
+- Actuan en forma similar a las funciones predefinidas de una fila se sql
+- Permite efectuar calculos y operaciones complejas que no se pueden realizar a traves
+de una sentencia
+- Incrementa la eficacia de las queries cuando son utilizadas en  la clausula WHERE para
+filtrar datos
+*/
+
+
+/*
+no se puede utilizar funciones DML desde un select con una funcion, porque
+estaria recuperando datos y a la vez modificarlos, solo puede hacer una cosa a la vez
+
+
+*/
+
+-- ejemplo de funcion para retornar nombre completo
+
+create or replace function FN_NOMBRE_COMPLETO(ID_EMP number) return VARCHAR2
+is 
+    v_nombre VARCHAR2(100);
+begin
+  select pnombre ||' '|| snombre||' '||ap_paterno||' '||ap_materno into v_nombre
+   from empleados where ID_EMPLEADO=ID_EMP;
+   return v_nombre
+    exception
+      when no_data_found then
+        RETURN '--';
+end;
+
+-- para utilizar en SELECT
+FN_NOMBRE_COMPLETO(ID_EMPLEADO)
+
+-- ejemplo de funcion con dos parametros para sacar porc de afp
+create or replace function fn_afp(P_PORC NUMBER, P_SUELDO NUMBER) RETURN NUMBER
+IS 
+    V_PORCENTAJE NUMBER:=0;
+begin
+  V_PORCENTAJE:=P_SUELDO*(P_PORC/100); -- DEVUELVE VALOR DE PORC PARA AFP EN PESOS
+  RETURN V_PORCENTAJE;
+exception
+  when others then
+    RETURN 0;
+end;
+
+-- USANDO FUNCION DE DOS PARAMETROS EN SELECT
+fb_afp(AFP.PORC_AFP,E.SUELDO) AS AFP -- Se pasa porc afp y sueldo para retornar pesos afp
+--------------------------------------------------------------------------------
+-- ejemplo de funcion para sacar bono por pertenecer a algunas comunas
+create or replace function fn_bono_comuna(p_comuna varchar2) return number
+is 
+    v_bono number:=0;
+begin
+ if p_comuna in('Renca','Puente Alto','Conchali','Independencia') then
+    v_bono := 10000;
+    else
+    v_bono := 0;
+    end if;
+    return v_bono;
+end;
+
+-- usando funcion comuna
+select fn_bono_comuna(comu.nomb_comuna) as bono_comuna from comuna comu;
+
+------------------------------------------------------------------------------------
+-- creando funcion para sacar bono por vacaciones
+create or replace function fn_bono_vacaciones(P_DIAS number) return number
+is 
+    v_error varchar2(255);
+    v_bono_vaca number :=0;
+begin
+  select valor_bono into v_bono_vaca from bono_vacaciones
+  where P_DIAS BETWEEN dia_min and dia_max;
+  RETURN v_bono_vaca; -- se puede retornar una variable
+exception
+  when others then
+     v_error:= sqlerrm;
+     -- si existe tabla de errores podemos usar excepcion para insertar mensaje de error
+     insert into error_procesos values (sq_error_proceso.nextval, 'Error en dias vaca fn',v_error )
+    return 0; -- y se puede retornar valor sin estar relacionado a variable
+end;
+-- usando funcion para bono de vacaciones
+select fn_bono_vacaciones(te.vacaciones) as bono_vaca from tipo_empleado te;
+------------------------------------------------------------------------------------------
+
+
+
+
+
+-- PAQUETES O PACKAGE
+-- creando package para ordenar procedimientos y funciones
+/*
+Almacena elementos en base a un tipo
+- Grupo o de diferentes componentes pl/sql, también llamados constructores,
+relacionados logicamente haciendolos una unidad
+
+- Consta de dos partes (Cabecera y Cuerpo) las que se almacenan por 
+separado en el diccionario de datos
+
+- Los constructores de un Package pueden ser tipos PL/SQL, variables,
+estructuras de datos, excepciones, procedimientos y funciones
+
+- Permite al servidor Oracle leer múltiples objetos en memoria a la vez
+
+- El contenido puede ser compartido con muchas aplicaciones
+
+ESPECIFICACION DEL PACKAGE (CABECERA, es publica):
+- Es la que puede ser usada por las aplicaciones. Aqui se declaran los tipos,
+variables, constantes, cursores y subprogramas para uso publico.
+- Tambien puede incluir PRAGMAS que son directivas para el compilador 
+
+CUERPO DEL PACKAGE (Privado):
+-Contiene información de sus propios subprogramas y la implementacion completa de los
+subprogramas declarados en la parte de especificación.
+
+- También se definen constructores pl/SQL como son tipos de variables, constantes,
+excepciones y cursores.
+
+- Si la especificación del package no contiene declaración de subprogramas entonces no se
+requiere un cuerpo para el package (si solo se crean definiciones de constantes variables
+o tipos no requiere de cuerpo porque lo necesario esta declarado en la cabecera)
+
+
+VISIBILIDAD DE LOS COMPONENTES DE UN PACKAGE
+
+- La visibilidad de un componente (constructor) significa
+si este puede ser referenciado y usado por otros componentes u objetos
+
+- Los componentes locales son visibles dentro de la estructura en la cual ellos 
+son declarados
+
+- La visibilidad de un componentes o constructor depende si ellos son de clarados
+en forma local (privado) o global (publico)
+
+- Los componentes declarados globalmente son visibles interna o externamente al 
+package
+
+- Un subprograma privado puede ser invocado solo desde subprogramas publicos u otro
+constructor privado del package
+
+
+*/
+
+create or replace procedure sp_proceso1(p_uf number) 
+-- para organizar las funciones y procedimientos podemos crear un paquete
+--1 crear la cabecera copiamos todo lo que esta "antes del IS"
+create or replace package pkg_prueba2
+
+is 
+-- se elimina create o replace porque esto ya lo hace el package
+   function fn_bono_vacaciones(P_DIAS number) return number; 
+   function fn_bono_comuna(p_comuna varchar2) return number;
+   function fn_afp(P_PORC NUMBER, P_SUELDO NUMBER) RETURN NUMBER;
+   function FN_NOMBRE_COMPLETO(ID_EMP number) return VARCHAR2;
+   function fn_bono(p_sueldo number) return number;
+   procedure sp_nuevo_sueldo(p_idemp number, p_sueldo in out number);
+end;
+--2) crear el cuerpo del paquete (copiamos todo el codigo)
+create or replace package body pkg_prueba2
+is
+
+function fn_bono_vacaciones(P_DIAS number) return number
+is 
+    v_error varchar2(255);
+    v_bono_vaca number :=0;
+begin
+  select valor_bono into v_bono_vaca from bono_vacaciones
+  where P_DIAS BETWEEN dia_min and dia_max;
+  RETURN v_bono_vaca; -- se puede retornar una variable
+exception
+  when others then
+     v_error:= sqlerrm;
+     -- si existe tabla de errores podemos usar excepcion para insertar mensaje de error
+     insert into error_procesos values (sq_error_proceso.nextval, 'Error en dias vaca fn',v_error )
+    return 0; -- y se puede retornar valor sin estar relacionado a variable
+end;
+
+function fn_bono_comuna(p_comuna varchar2) return number
+is 
+    v_bono number:=0;
+begin
+ if p_comuna in('Renca','Puente Alto','Conchali','Independencia') then
+    v_bono := 10000;
+    else
+    v_bono := 0;
+    end if;
+    return v_bono;
+end;
+
+function fn_afp(P_PORC NUMBER, P_SUELDO NUMBER) RETURN NUMBER
+IS 
+    V_PORCENTAJE NUMBER:=0;
+begin
+  V_PORCENTAJE:=P_SUELDO*(P_PORC/100); -- DEVUELVE VALOR DE PORC PARA AFP EN PESOS
+  RETURN V_PORCENTAJE;
+exception
+  when others then
+    RETURN 0;
+end;
+
+function FN_NOMBRE_COMPLETO(ID_EMP number) return VARCHAR2
+is 
+    v_nombre VARCHAR2(100);
+begin
+  select pnombre ||' '|| snombre||' '||ap_paterno||' '||ap_materno into v_nombre
+   from empleados where ID_EMPLEADO=ID_EMP;
+   return v_nombre
+    exception
+      when no_data_found then
+        RETURN '--';
+end;
+
+function fn_bono(p_sueldo number) return number -- colocar tipo de dato a retornar
+is
+-- seccion declarativa
+    v_porc_bono number:=0.6;
+    v_nuevo_sueldo number :=0;
+begin
+    v_nuevo_sueldo:=(p_sueldo+ (p_sueldo*v_porc_bono));
+    return v_nuevo_sueldo;
+exception
+    when others then
+        return 0;
+end;
+
+procedure sp_nuevo_sueldo(p_idemp number, p_sueldo in out number)
+is
+    v_reajuste number:=0;
+    v_departamento number;
+begin
+    select department_id into v_departamento
+    from employees where employee_id = p_idemp;
+    if p_sueldo<5000 and v_departamento in (60,90,30) then
+        v_reajuste:= p_sueldo*1.5;
+        p_sueldo:=v_reajuste;
+    else
+        p_sueldo:= 0;
+    end if;
+    end;
+-- para ejecutar
+declare
+    v_sueldo number := 8000;
+    v_id number := 107;
+begin
+    sp_nuevo_sueldo(v_id,v_sueldo); -- parametros out se pasan por variable
+    dbms_output.put_line('El nuevo sueldo es:' ||v_sueldo);
+--    update employees set salary=v_sueldo where employee_id=v_id; para actualizar campo salario 
+    end;
+end;
+
+--  EJECUTAR DESDE UN PAQUETE PACKAGE
+execute pkg_prueba2.sp_nuevo_sueldo();

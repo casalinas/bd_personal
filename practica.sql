@@ -4235,3 +4235,335 @@ end;
 
 --  EJECUTAR DESDE UN PAQUETE PACKAGE
 execute pkg_prueba2.sp_nuevo_sueldo();
+
+------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+-- CREANDO TRIGGERS
+/*
+- Identificar las caracteristicas y el uso de un Trigger.
+- Describir los eventos que pueden ser controlados a traves de un Trigger
+- Tipos de Triggers asociados a sentencias DML
+- Uso de predicadores condicionales en un Trigger
+- Uso de las pseducomumnas OLD y NEW
+- Cómo crear un Trigger a Nivel de Fila
+- Como incorporar restricciones en Trigger a Nivel de Fila 
+- Como crear un Trigger INSTEAD OF
+- Como crear Trigger asociado a sentencias DDL y a eventos
+- Como obtener información de los Procedimientos Almacenados desde el Diccionario de
+datos
+
+
+Conceptos generales Triggers de Base de Datos
+
+- Un Trigger de Base de Datos es un bloque pl/sql o asociado a una tabla, vista, esquema 
+o Base de Datos
+
+- Se ejecutan implícitamente cuando ocurren los sitguientes eventos: DML sobre tablas,
+DML sobre Vistas y DDL
+
+- Se activan implícitamente por la base de datos en respuesta a un evento especifico, 
+sin importar qué usuario está conectado o la aplicación que se está ejecutando
+
+- Se pueden utilizar para: Integridad referencial, auditar cambios en los datos, 
+seguridad, efectuar acciones cuando una tabla es modificada o auditar eventos en la base
+de datos.
+
+- Las acciones de un Trigger pueden considerar ejecutar un conjunto de sentencias SQL, 
+pl/SQL y subprogramas
+
+------------------------
+
+Características de los Triggers
+- Se almacena solo el codigo fuente del Trigger, por lo tanto se compila
+cada vez que se activan
+
+- Para definir un Trigger se deben especificar las condiciones bajo las 
+cuales el trigger será ejecutado y las acciones que se realizarán cuando el 
+Trigger se ejecute
+
+- Un Trigger no admite parámetros y puede afectar a N filas
+
+- Un nombre de Trigger debe ser único con respecto a otro Trigger del mismo
+esquema
+
+- Cuando un Trigger falla, el servidor Oracle realiza automáticamente un Rollback de 
+las sentencias que conforman el cuerpo del Trigger
+-----------------
+
+Tipo de eventos que un Trigger puede controlar
+- Sentencias DML: Una sentencia INSERT, UPDATE o DELETE en una tabla específica(o vista,
+en algunos casos).
+
+- Sentencias DDL: Sentencia CREATE, ALTER o DROP en cualquier objeto de esquema
+
+- Operación de la Base de Datos: 
+- El inicio o cierre de una instancia o base de datos (startup, shutdown).
+- Un mensaje de error especiico o cualquier mensaje de error
+- El inicio o cierre de sesion de usuario (logon, logoff).
+*/
+/*
+- Creacion de Trigger asociado a Sentencias DML
+  La sentencia CREATE TRIGGER permite crear un nuevo Trigger en la Base 
+  de Datos, el cual consta de tres partes: Comando, Restricción y Acción.
+
+- En el Comando se especifica la sentencia DML que activará al Trigger y la tabla
+asociada. Se especifica tambien si el Trigger se activa ANTES o DESPUES de la sentencia
+
+- En la Restricción se define la condición que tiene que verificar cada fila
+de la tabla para que que se ejecute la acción del Trigger
+
+- En la Acción se define la tarea específica que realiza el Trigger a través
+de comandos y sentencias SQL y PL/SQL.
+
+--------------------------
+Tiempo de Ejecución de un Trigger DML
+- Se puede especificar el tiempo de ejecución de las acciones del Trigger
+
+- AFTER: ejecuta el cuerpo del Trigger después de que el evento DML que lo 
+desencadena se ejecute sobre la tabla
+
+- BEFORE: ejecuta el cuerpo del Trigger antes de que el evento DML que lo desencadena
+se ejecute sobre la tabla
+
+- INSTEAD OF: ejecuta el cuerpo del Trigger en lugar de la sentencia DML que se 
+ejecuta sobre una vista (ni antes ni despues, solo sustituyendola)
+
+- Si se definen multiples triggers sobre el objeto, entonces el orden en que
+se activan los Triggers es arbitrario
+*/
+
+/*
+---------------------------------
+Tipos de Triggers DML
+- El tipo de Trigger determina si el cuerpo del Trigger se ejecutara para cada fila
+o solo una vez cuando se ejecute la sentencia DML en la tabla
+
+# TRIGGER A NIVEL DE FILA: 
+- Se ejecuta una vez por cada fila afectada por la sentencia SQL que activa la ejecucion
+del trigger
+
+- No se ejecuta si el evento que gatilla al trigger no afecta ninguna fila
+
+- Esta indicado por la especificacion de la clausula FOR EACH ROW
+
+- Usa un nombre de correlación para accesar al valor almacenado en la Base de Datos
+o al nuevo valor de la fila que está siendo procesada por el trigger
+
+# TRIGGER A NIVEL DE SENTENCIA
+- Es el tipo de trigger por defecto
+- Se ejecuta una vez antes o después de la sentencia SQL que gatilla el trigger
+- Se gatilla una vez (no importa el número de filas que serán afectadas) Incluso si
+ninguna fila es afectada
+*/
+
+-- creacion de triggers
+create or replace trigger trg_nombre
+before / after --> cuando se ejecutara BEFORE: antes / AFTER : despues
+update or delete or insert --> acciones a monitorear
+on tabla_a_monitorear
+for each row --> se ejecuta el trigger para cada fila afectada
+declare
+    -- declaracion de variables
+begin
+     -- proceso
+end;
+---------------------------------------------
+
+-- crearemos un duplicado de la tabla de empleados
+create table empleados as select * from employees;
+select * from empleados;
+-- crearemos un trigger para monitorear las acciones sobre la tabla
+create or replace trigger trg_uno
+before 
+update or delete or insert 
+on empleados
+for each row
+declare
+begin
+    dbms_output.put_line('Realizo una accion sobre la tabla');
+end;
+
+-- probando trigger uno
+delete from empleados where salary>20000;
+select * from empleados where salary>20000;
+rollback;
+-- para diferenciar cada una de las acciones de un trigger
+-- emplean predicados: 
+--INSERTING, DELETING, UPDATING pregunta si se elimino o si se actualizo
+create or replace trigger trg_uno
+before
+update or delete or insert 
+on empleados
+for each row
+declare 
+    -- cada variable predicado se carga con TRUE / FALSE
+begin
+    if inserting then
+        dbms_output.put_line('inserto registro en tabla empleados');
+    end if;
+    if deleting then
+        dbms_output.put_line('elimino reg. en tabla empleados');
+    end if;
+    if updating then 
+        dbms_output.put_line('actualizo registro en tab empleados');
+     end if;
+end;
+-- probar
+delete from empleados where salary <3500;
+update empleados set salary= salary + 500 where salary < 3500;
+
+rollback;
+
+-- podemos utilizar el registro que se afecto con el trigger 
+-- :old --> toma el antiguo registro 
+-- :new --> toma el nuevo registro
+create or replace trigger trg_uno
+before 
+update or delete or insert
+on empleados
+for each row
+declare
+
+begin
+    if inserting then -- inserting es new
+        dbms_output.put_line('Inserto el empleado ' || :new.first_name ||' '||:new.LAST_NAME); -- quiero el nuevo registro
+    end if;
+    if deleting then -- deleting es old
+        dbms_output.put_line('Elimino empleado '|| :old.first_name||' '||:old.last_name);
+    end if;
+    if updating then -- solo el updating tiene old y new
+        dbms_output.put_line('Sueldo antiguo:' || :old.salary ||'y el nuevo es: ' || :new.salary);
+    end if;
+end;
+-- ahora puedo ver datos de los registros que estan siendo modificados
+-- probar
+update empleados set salary=salary-500
+where salary < 3000;
+
+delete from empleados where salary =2500;
+rollback;
+
+insert into empleados values(90,'Carlos','Salinas','carlos.oibur',8520068,'2/5/98','SH_CLERK',30000,0.25,122,50);
+rollback;
+----------------------------------------------------
+-- crear un trigger que evalua una condicion (WHEN 'CUANDO')
+
+-- desactivar trigger
+alter trigger trg_uno disable; -- se desactiva para no tener dos triggers asosiados a la misma tabla
+-- activar trigger
+alter trigger trg_uno enable;
+
+-- TRIGGER 2
+create or replace trigger trg_dos
+before
+delete or update
+on empleados
+for each row when (old.SALARY<3500) -- determina que filas cumplen con condicion para poder usarse el trigger
+declare
+begin
+    if deleting then 
+    dbms_output.put_line('elimino emp. N° ' || :old.EMPLOYEE_ID || 'sueldo: '|| :old.SALARY);
+        end if;
+    if updating then
+        dbms_output.put_line('Actualizo reg. ' ||:old.EMPLOYEE_ID || ' sueldo antiguo' ||:old.SALARY|| ' por el nuevo ' || :new.SALARY);
+    end if;
+end;
+-- probar
+-- delete no entra en trigger porque salario esta por sobre el valor asignado en for each row
+delete from empleados where salary > 3500 and salary < 6000;
+
+rollback;
+-- update si entra en trigger porque esta dentro de los valores asignados en for each row
+update empleados set salary=salary+100 where salary < 3500;
+
+alter trigger trg_dos disable;
+--------------------------------------------------------------
+-- creacion de un proceso con triggers de monitoreo
+create table auditoria(
+    id number primary key,
+    proceso varchar2(50),
+    fecha date 
+);
+create sequence sq_auditoria;
+-- crear un trigger que almacene lo que esta realizando el usuario
+create or replace trigger trg_auditoria
+before 
+delete or update or insert
+on empleados
+for each row
+declare
+begin
+    if inserting then
+        insert into auditoria values(sq_auditoria.nextval,'Inserto reg. ' || :new.employee_id, sysdate);
+    end if;
+    if deleting then
+        insert into auditoria values(sq_auditoria.nextval,'Elimino reg. '|| :old.employee_id , sysdate);
+    end if;
+    if updating then
+        insert into auditoria values(sq_auditoria.nextval,'Actualizo reg. '|| :old.employee_id , sysdate);
+    end if;
+end;
+-- probar 
+update empleados set salary=salary+200 where salary < 2500;
+delete from empleados where salary > 15000;
+
+rollback;
+select * from auditoria;
+----------------------------------------------------------------
+-- ejemplo 2
+create table bodega(
+    id_producto number primary key,
+    descripcion varchar2(80),
+    cantidad number,
+    precio number
+);
+insert into bodega values (1,'Platano',100,780);
+insert into bodega values (2,'Sandia',80,3000);
+insert into bodega values (3,'Pera',40,100);
+select * from bodega;
+
+create table ventas (
+    id_venta number primary key,
+    id_producto number not null,
+    cantidad number
+);
+-- crear un trigger que permita modificar las cantidades 
+-- de bodega a medida que se compran productos
+create or replace trigger trg_bodega
+after
+insert or delete
+on ventas
+for each row
+declare
+begin
+    if inserting then
+    update bodega set cantidad=cantidad- :new.cantidad
+    where id_producto= :new.id_producto;
+    end if;
+    if deleting then
+    update bodega set cantidad=cantidad + :old.cantidad
+    where id_producto= :old.id_producto;
+    end if;
+end;
+-- podemos ingresar una venta
+create sequence seq_venta;
+truncate table ventas;
+insert into ventas values (seq_venta.nextval,1,10);
+insert into ventas values(seq_venta.nextval,2,20);
+insert into ventas values(seq_venta.nextval,3,20);
+
+select * from bodega;
+select * from ventas;
+delete from ventas where id_venta=3;
+--------------------------------------------------------------
+--------------------------------------------------------------
+-- ultima materia: sql dinámico (3:47:36 clase 14)

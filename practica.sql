@@ -387,11 +387,18 @@ ORDER BY SALARIO DESC;
 
 SELECT first_name, salary FROM EMPLOYEES FETCH FIRST 10 ROWS ONLY;
 
-
+-- como alterar tablas
+alter table empleados add smin number default 0 not null; -- añadimos un campo
+alter table empleados drop column smin; -- eliminamos campo (no se puede eliminar si es el unico de tabla)
+select * from empleados;
+rollback; -- volvemos atrás los cambios
+-- actualizamos datos de campo creado usando una subconsulta
+update empleados set smin =(select min(salary) from employees); 
+update empleados set smax =(select ROUND(avg(salary),0) from employees); 
 
 ---------------------------------------------------------------------------
 
-FUNCIONES
+caracteristicas sql
 
 
 se pueden usar en cualquier parte de sql, despues de ellas se pone en paréntesis cuál será la columna afectada por la función
@@ -1359,12 +1366,10 @@ Begin
         Dbms_output.put_line('Suma :' || (v_numero2+v_numero));
       
       end if;
+      Else
+	Raise v_exe; -- si numero es menor a 10 ocurre excepción
       end if;
     end; 
-
-  Else
-	Raise v_exe; -- si numero es menor a 10 ocurre excepción
-  End if;
 
 exception
 
@@ -4564,6 +4569,57 @@ insert into ventas values(seq_venta.nextval,3,20);
 select * from bodega;
 select * from ventas;
 delete from ventas where id_venta=3;
+
+
+
+
+
 --------------------------------------------------------------
 --------------------------------------------------------------
 -- ultima materia: sql dinámico (3:47:36 clase 14)
+
+--------------------------------------------------------------
+-- SQL DINAMICO
+-- permite la construccion en tiempo de ejecucion de un proc.
+-- almacenado o funcion de un SQL que permita procesar datos
+-- se puede crear procedimientos y funciones que alteren tablas
+create or replace function fn_cantidad_emp(p_sueldo_min number, p_sueldo_max number)
+return number
+is
+    v_cantidad number :=0;
+    v_sql varchar2(255); -- variable sql donde escribiremos la consulta
+begin
+    v_sql:= 'select count(*) from empleados where salary between :smin and :smax'; -- dos puntos antes de nombre significa parametro 
+    execute immediate v_sql into v_cantidad using p_sueldo_min, p_sueldo_max;
+    return v_cantidad;
+end;
+
+
+-- probar sql dinamico
+declare
+    v_total number := 0;
+begin
+    v_total:=fn_cantidad_emp(2600,3500);
+    dbms_output.put_line('Cant. Empleados entre 2600 y 3500 dólares: '|| v_total);
+end;
+--------------------------------------------------------------
+-- SQL DINAMICO DE ACTUALIZACION
+create or replace 
+function fn_act_sueldo(p_sueldo number, p_reajuste number)
+return number 
+is
+    v_sql varchar2(255);
+begin
+    v_sql:='update empleados set salary=salary+((salary *:p1)/100 ) where salary < :p2';
+    execute immediate v_sql using p_reajuste,p_sueldo;
+    return sql%rowcount; -- return es para sentencias sql, la ultimja fue update
+end;
+-- probar
+declare
+    v_cantidad number:=0;
+begin
+    v_cantidad:=fn_act_sueldo(3500,20);
+    dbms_output.put_line('Cantidad Emp. reajustados ' || v_cantidad);
+end;
+
+--------------------------------------------------------------

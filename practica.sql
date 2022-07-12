@@ -4623,4 +4623,28 @@ begin
 end;
 
 --------------------------------------------------------------
--- prueba git
+-- examen
+
+create or replace trigger trg_cupo
+after 
+insert or delete 
+on TRANSACCION_TARJETA_CLIENTE
+for each row
+declare
+begin
+    if inserting then
+        update tarjeta_cliente set cupo_compra=cupo_compra - :new.MONTO_TOTAL_TRANSACCION
+        where NRO_TARJETA= :new.NRO_TARJETA;
+    end if;
+    if deleting then
+        update tarjeta_cliente set cupo_compra=cupo_compra + :old.MONTO_TOTAL_TRANSACCION
+        where NRO_TARJETA= :old.NRO_TARJETA;
+    end if;
+end;
+
+insert into transaccion_tarjeta_cliente values (31021713767,1004,sysdate,20000,6,21000,102,1311);
+delete from transaccion_tarjeta_cliente where nro_transaccion = 1004 and nro_tarjeta = 31021713767 ;
+
+select * from transaccion_tarjeta_cliente where nro_tarjeta = 31021713767;
+
+select * from tarjeta_cliente where nro_tarjeta = 31021713767;
